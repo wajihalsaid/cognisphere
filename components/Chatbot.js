@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import {FiSend, FiRefreshCcw, FiTerminal } from "react-icons/fi";
 import {
   getOpenAIResponse,
-  getgroqResponse,
   getGeminiResponse,
 } from "../lib/api";
 import CryptoJS from "crypto-js";
