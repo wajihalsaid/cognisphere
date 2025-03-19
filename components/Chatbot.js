@@ -434,8 +434,6 @@ const Chatbot = () => {
           response?.response?.data?.choices[0]?.message?.content ??
           response?.data?.candidates[0]?.content.parts[0].text ??
           "No response received.";
-      } else if (selectedLLM === "MetaLLM") {
-        answer = await getgroqResponse(userQuestion, apiLLMKey);
       } else if (selectedLLM === "Gemini") {
         response =
           aiDefenseMode === "browser"
