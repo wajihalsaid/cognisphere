@@ -3,8 +3,6 @@
 
 ## Getting Started
 
-# CogniSphere
- AI Advanced Chat Bot
  
 ## Installation
 
