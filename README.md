@@ -1,5 +1,5 @@
 # CogniSphere
- AI Advanced ChatBot
+ AI Advanced Chat Bot
 
 ## Getting Started
 
