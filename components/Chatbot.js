@@ -662,7 +662,7 @@ const Chatbot = () => {
           {errorMessage}
         </pre>,
       ]);
-      alert("Failed to fetch the answer. Please try again.");
+      //alert("Failed to fetch the answer. Please try again.");
       let answer = "No response";
       const newAnswer = { userQuestion, answer };
       saveHistory(newAnswer);
