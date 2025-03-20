@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import {FiSend, FiRefreshCcw, FiTerminal } from "react-icons/fi";
-import {
-  getOpenAIResponse,
-  getGeminiResponse,
-} from "../lib/api";
+import { FiSend, FiRefreshCcw, FiTerminal } from "react-icons/fi";
+import { getOpenAIResponse, getGeminiResponse } from "../lib/api";
 import CryptoJS from "crypto-js";
 import { useRouter } from "next/router";
 import { Icon } from "@iconify/react";
@@ -12,7 +9,10 @@ import { motion } from "framer-motion";
 
 import AdminSidebar from "./AdminSidebar";
 import axios from "axios";
-
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism/coy";
+import { Clipboard, ClipboardCheck } from "lucide-react";
 
 const predefinedQuestions = [
   "What's the weather like today?",
@@ -91,6 +91,26 @@ function generateAlertMessage(violations) {
 
   return null;
 }
+
+// ✅ Copy Button Component
+const CopyButton = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+  };
+
+  return (
+    <button
+      onClick={copyToClipboard}
+      className="absolute top-2 left-2 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition"
+    >
+      {copied ? <ClipboardCheck size={16} /> : <Clipboard size={16} />}
+    </button>
+  );
+};
 
 const Chatbot = () => {
   const [question, setQuestion] = useState("");
@@ -350,7 +370,7 @@ const Chatbot = () => {
     let encryptedKey = null;
     if (llm.startsWith("gpt-") || llm === "o3-mini") {
       encryptedKey = localStorage.getItem("OPENAI_API_KEY");
-    } else  if (llm.startsWith("llama-") || llm.startsWith("deepseek-")) {
+    } else if (llm.startsWith("llama-") || llm.startsWith("deepseek-")) {
       encryptedKey = localStorage.getItem("META_LLM_API_KEY");
     } else if (llm === "Gemini") {
       encryptedKey = localStorage.getItem("GEMINI_API_KEY");
@@ -384,9 +404,15 @@ const Chatbot = () => {
       return;
     }
 
-    if (aiDefenseMode === "gateway" && (selectedLLM == "Gemini" || selectedLLM.startsWith("llama-") || selectedLLM.startsWith("deepseek-"))) {
+    if (
+      aiDefenseMode === "gateway" &&
+      (selectedLLM == "Gemini" ||
+        selectedLLM.startsWith("llama-") ||
+        selectedLLM.startsWith("deepseek-"))
+    ) {
       alert(
-        selectedLLM + " is not supported in AI Defense Gateway mode, please try via API Inspection!"
+        selectedLLM +
+          " is not supported in AI Defense Gateway mode, please try via API Inspection!"
       );
       setLoading(false);
       return;
@@ -415,7 +441,14 @@ const Chatbot = () => {
 
       // API response handling
       if (
-        ["gpt-4o", "gpt-4.5-preview", "o3-mini", "gpt-4", "llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"].includes(selectedLLM)
+        [
+          "gpt-4o",
+          "gpt-4.5-preview",
+          "o3-mini",
+          "gpt-4",
+          "llama-3.3-70b-versatile",
+          "deepseek-r1-distill-llama-70b",
+        ].includes(selectedLLM)
       ) {
         response =
           aiDefenseMode === "browser"
@@ -803,8 +836,56 @@ const Chatbot = () => {
 
                     {/* AI Answer (Left-Aligned Dark Bubble) */}
                     <div className="flex justify-start">
-                      <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-[75%]">
-                        <div className="prose prose-invert">{item.answer}</div>
+                      <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-none">
+                        <div className="prose prose-invert max-w-none leading-relaxed space-y-4">
+                          <ReactMarkdown
+                            components={{
+                              code({
+                                node,
+                                inline,
+                                className,
+                                children,
+                                ...props
+                              }) {
+                                const match = /language-(\w+)/.exec(
+                                  className || ""
+                                );
+                                const codeString = String(children).replace(
+                                  /\n$/,
+                                  ""
+                                );
+                                return match ? (
+                                  <div className="relative group">
+                                    <CopyButton text={codeString} />
+                                    <SyntaxHighlighter
+                                      style={oneDark}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      customStyle={{
+                                        padding: "12px", // Adds padding inside the code block
+                                        margin: "8px 0", // Adds space above & below the code block
+                                        borderRadius: "8px", // Rounds the corners
+                                        lineHeight: "1.6", // Increases line height for better spacing
+                                        fontSize: "14px", // Adjust font size for readability
+                                        overflowX: "auto", // Ensures horizontal scrolling if needed
+                                      }}
+                                      {...props}
+                                    >
+                                      {codeString}
+                                    </SyntaxHighlighter>
+                                  </div>
+                                ) : (
+                                  <code className="bg-gray-700 px-2 py-1 rounded text-sm">
+                                    {children}
+                                  </code>
+                                );
+                              },
+                            }}
+                          >
+                            {item.answer}
+                          </ReactMarkdown>
+                        </div>
+                        ;
                       </div>
                     </div>
 
@@ -923,7 +1004,9 @@ const Chatbot = () => {
             <option value="o3-mini">OpenAI o3-mini</option>
             <option value="gpt-4o">OpenAI GPT-4o</option>
             <option value="gpt-4">OpenAI GPT-4</option>
-            <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+            <option value="llama-3.3-70b-versatile">
+              llama-3.3-70b-versatile
+            </option>
             <option value="deepseek-r1-distill-llama-70b">deepseek-r1</option>
             <option value="Gemini">gemini-2.0-flash</option>
           </select>
