@@ -663,6 +663,9 @@ const Chatbot = () => {
         </pre>,
       ]);
       alert("Failed to fetch the answer. Please try again.");
+      let answer = "No response";
+      const newAnswer = { userQuestion, answer };
+      saveHistory(newAnswer);
       setLoading(false);
     }
   };
@@ -885,7 +888,6 @@ const Chatbot = () => {
                             {item.answer}
                           </ReactMarkdown>
                         </div>
-                        ;
                       </div>
                     </div>
 
