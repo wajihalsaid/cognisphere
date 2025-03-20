@@ -11,7 +11,7 @@ import AdminSidebar from "./AdminSidebar";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism/coy";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism/dark";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 
 const predefinedQuestions = [
