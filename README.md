@@ -45,3 +45,43 @@ sudo pm2 startup
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+
+## Keep your sevrer running latest version (on-demand):
+
+[optional] Create an on-demand script that it will make your project to get latest updates
+
+```shell
+sudo tee -a /var/www/cognisphere/.git/hooks/post-receive > /dev/null <<EOF
+#!/bin/bash
+APP_DIR="/var/www/cognisphere"
+BRANCH="main"  # Change to the branch you are pulling from
+
+cd \$APP_DIR || exit
+
+echo "🚀 Pulling latest changes from Git..."
+git pull origin \$BRANCH
+
+echo "📦 Installing dependencies..."
+npm install
+
+echo "🔨 Building the Next.js app..."
+npm run build
+
+echo "♻️ Restarting Next.js app with PM2..."
+pm2 restart cognisphere
+
+echo "✅ Deployment completed!"
+EOF
+
+# Make the hook executable
+sudo chmod +x /var/www/cognisphere/.git/hooks/post-receive
+```
+
+
+Whenever you want to run the update, execute the below command:
+
+
+```shell
+sudo bash /var/www/cognisphere/.git/hooks/post-receive 
+```
