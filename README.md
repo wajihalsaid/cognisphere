@@ -20,13 +20,20 @@ sudo mkdir /var/www
 sudo mkdir /var/www/cognisphere
 cd /var/www/cognisphere
 
-sudo git init --bare
+sudo git config --global init.defaultBranch main
+sudo git init
 sudo git remote add origin https://github.com/wajihalsaid/cognisphere.git
 sudo git pull --rebase origin main
 
 sudo npm install
 sudo npm run build
 ```
+
+To run the app temporary:
+```shell
+npm start
+```
+
 
 To keep it always running even after reboot:
 
