@@ -720,7 +720,7 @@ const Chatbot = () => {
       {/* ✅ Logo */}
       <div className="fixed absolute top-4 left-4 flex items-center gap-2 text-blue-500">
         <Icon icon="lucide:brain" className="text-4xl text-blue-500" />
-        <p className="font-bold text-lg">CogniSphere</p>
+        <p className="font-bold text-lg">Cogni Sphere</p>
       </div>
 
       {/* ✅ Sidebar Questions List */}
