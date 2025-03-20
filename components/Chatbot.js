@@ -758,7 +758,7 @@ const Chatbot = () => {
       <div
         className={`fixed top-0 right-0 h-full bg-black shadow-lg transition-transform transform ${
           showLogs ? "translate-x-0" : "translate-x-full"
-        } w-150 p-4`}
+        } w-150 p-4 z-1`}
       >
         <h3 className="text-lg text-blue-500">API Logs</h3>
         <div className="max-h-[80vh] overflow-y-auto font-mono text-xs leading-tight">
@@ -780,7 +780,7 @@ const Chatbot = () => {
 
       {/* ✅ Console Toggle Button */}
       <button
-        className="fixed top-5 right-25 text-gray-100 hover:text-white transition"
+        className="fixed top-5 right-25 text-gray-100 hover:text-white transition z-10"
         onClick={() => setShowLogs(!showLogs)}
       >
         <FiTerminal size={24} />
@@ -788,7 +788,7 @@ const Chatbot = () => {
 
       {/* Clear History Button */}
       <button
-        className="fixed absolute top-5 right-15 text-gray-100 hover:text-white transition"
+        className="fixed absolute top-5 right-15 text-gray-100 hover:text-white transition z-10"
         onClick={clearHistory}
       >
         <FiRefreshCcw size={24} /> {/* Icon for clearing history */}
@@ -994,7 +994,7 @@ const Chatbot = () => {
         </div>
 
         {/* Model Selector */}
-        <div className="fixed top-3.5 right-35 text-gray-400 hover:text-white transition">
+        <div className="fixed top-3.5 right-35 text-gray-400 hover:text-white transition z-10">
           <select
             onChange={handleLLMChange}
             value={selectedLLM}
