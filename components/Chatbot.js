@@ -147,6 +147,7 @@ const Chatbot = () => {
     "Social Division & Polarization": { enabled: false, action: "Ignore" },
     "Violence & Public Safety Threats": { enabled: false, action: "Ignore" },
   });
+  const [sendPromptVia, setSendPromptVia] = useState("Server Gateway");
 
   useEffect(() => {
     // Ensure code runs only on the client
@@ -157,6 +158,7 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
+      setSendPromptVia(storedSettings.sendPromptVia ?? "Server Gateway");
     } else {
       const settings = {
         aiDefenseMode,
@@ -164,6 +166,7 @@ const Chatbot = () => {
         apiServer,
         apiKey,
         enabledRules,
+        sendPromptVia,
       };
       localStorage.setItem("AI_DEFENSE_SETTINGS", JSON.stringify(settings));
     }
@@ -199,6 +202,7 @@ const Chatbot = () => {
           setApiServer(JSON.parse(storedSettings).apiServer);
           setApiKey(JSON.parse(storedSettings).apiKey);
           setEnabledRules(JSON.parse(storedSettings).enabledRules);
+          setSendPromptVia(storedSettings.sendPromptVia ?? "Server Gateway");
         }
       }
     };
@@ -221,6 +225,7 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
+      setSendPromptVia(storedSettings.sendPromptVia ?? "Server Gateway");
     }
     //  }
   }, [showAdmin]); // 🔥 Triggers update when showAdmin changes
@@ -251,6 +256,7 @@ const Chatbot = () => {
         setApiServer(storedSettings.apiServer);
         setApiKey(storedSettings.apiKey);
         setEnabledRules(storedSettings.enabledRules);
+        setSendPromptVia(storedSettings.sendPromptVia ?? "Server Gateway");
       }
     };
 
@@ -425,6 +431,7 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
+      setSendPromptVia(storedSettings.sendPromptVia ?? "Server Gateway");
     }
 
     let answer;
@@ -453,13 +460,15 @@ const Chatbot = () => {
         response =
           aiDefenseMode === "browser"
             ? await getOpenAIResponse(userQuestion, selectedLLM)
-            : await axios.post("/api/openai", {
+            : sendPromptVia === "Server Gateway"
+            ? await axios.post("/api/openai", {
                 selectedLLM,
                 userQuestion,
                 apiLLMKey,
                 aiDefenseMode,
                 gatewayUrl,
-              });
+              })
+            : await getOpenAIResponse(userQuestion, selectedLLM);
         // console.log(response)
         answer =
           response?.data?.response?.choices[0]?.message?.content ??
@@ -470,13 +479,15 @@ const Chatbot = () => {
         response =
           aiDefenseMode === "browser"
             ? await getGeminiResponse(userQuestion, apiLLMKey)
-            : await axios.post("/api/gemini", {
+            : sendPromptVia === "Server Gateway"
+            ? await axios.post("/api/gemini", {
                 selectedLLM,
                 userQuestion,
                 apiLLMKey,
                 aiDefenseMode,
                 gatewayUrl,
-              });
+              })
+            : await getGeminiResponse(userQuestion, apiLLMKey);
         //console.log("response: ", response);
         answer =
           response?.response?.data?.candidates[0]?.content.parts[0].text ??

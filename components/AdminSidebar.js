@@ -48,12 +48,14 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     "Social Division & Polarization": { enabled: false, action: "Ignore" },
     "Violence & Public Safety Threats": { enabled: false, action: "Ignore" },
   });
+  const [sendPromptVia, setSendPromptVia] = useState("Server Gateway");
 
   const handleSaveSettings = async () => {
     if (aiDefenseMode === "browser") {
       const settings =
         JSON.parse(localStorage.getItem("AI_DEFENSE_SETTINGS")) || {};
       settings.aiDefenseMode = aiDefenseMode; // Update only aiDefenseMode
+      settings.sendPromptVia = "User Browser";
       localStorage.setItem("AI_DEFENSE_SETTINGS", JSON.stringify(settings));
       alert("AI Defense settings saved successfully!");
       return;
@@ -62,6 +64,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
       const settings =
         JSON.parse(localStorage.getItem("AI_DEFENSE_SETTINGS")) || {};
       settings.aiDefenseMode = aiDefenseMode; // Update only aiDefenseMode
+      settings.sendPromptVia = "Server Gateway";
       localStorage.setItem("AI_DEFENSE_SETTINGS", JSON.stringify(settings));
       alert("AI Defense settings saved successfully!");
       return;
@@ -75,11 +78,12 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
       }
 
       // To prevent adding additional context to url
-      const regex = /^(https:\/\/.*\.gateway\.aidefense\.security\.cisco\.com\/[a-f0-9\-]+\/connections\/[a-f0-9\-]+)(?:.*)?$/;
+      const regex =
+        /^(https:\/\/.*\.gateway\.aidefense\.security\.cisco\.com\/[a-f0-9\-]+\/connections\/[a-f0-9\-]+)(?:.*)?$/;
       const match = gatewayUrl.match(regex);
       let gwUrl = "";
       if (match) {
-        gwUrl = (match[1]);
+        gwUrl = match[1];
       } else {
         alert(
           "Gateway URL is not valid, please use Copy icon beside Gateway URL in Connection Guide"
@@ -91,6 +95,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
         JSON.parse(localStorage.getItem("AI_DEFENSE_SETTINGS")) || {};
       settings.aiDefenseMode = aiDefenseMode; // Update aiDefenseMode
       settings.gatewayUrl = gwUrl; // Update gatewayUrl
+      settings.sendPromptVia = sendPromptVia; // Update Prompt sending method
       localStorage.setItem("AI_DEFENSE_SETTINGS", JSON.stringify(settings));
       alert("AI Defense settings saved successfully!");
       return;
@@ -124,6 +129,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
       settings.aiDefenseMode = aiDefenseMode; // Update aiDefenseMode
       settings.apiServer = apiServer; // Update apiServer
       settings.apiKey = encryptedApiKey; // Update apiKey
+      settings.sendPromptVia = sendPromptVia; // Update Prompt sending method
       settings.enabledRules = enabledRules; // Update enabledRules
       localStorage.setItem("AI_DEFENSE_SETTINGS", JSON.stringify(settings));
       alert("AI Defense settings saved successfully!");
@@ -394,13 +400,28 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                 <option value="api">Via API</option>
               </select>
               {aiDefenseMode === "gateway" && (
-                <input
-                  type="text"
-                  value={gatewayUrl}
-                  onChange={(e) => setGatewayUrl(e.target.value)}
-                  placeholder="Enter Gateway URL"
-                  className="w-full bg-gray-700 p-2 rounded mb-2"
-                />
+                <>
+                  <input
+                    type="text"
+                    value={gatewayUrl}
+                    onChange={(e) => setGatewayUrl(e.target.value)}
+                    placeholder="Enter Gateway URL"
+                    className="w-full bg-gray-700 p-2 rounded mb-2"
+                  />
+
+                  <select
+                    className="w-full bg-gray-700 p-2 rounded mb-2"
+                    value={sendPromptVia || "Server Gateway"}
+                    onChange={(e) => setSendPromptVia(e.target.value)}
+                  >
+                    <option value="Server Gateway">
+                      Send Prompt via Server Gateway
+                    </option>
+                    <option value="User Browser">
+                      Send Prompt via User Browser
+                    </option>
+                  </select>
+                </>
               )}
               {aiDefenseMode === "api" && (
                 <>
@@ -427,6 +448,19 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     placeholder="Enter API Key"
                     className="w-full bg-gray-700 p-2 rounded mb-2"
                   />
+
+                  <select
+                    className="w-full bg-gray-700 p-2 rounded mb-2"
+                    value={sendPromptVia || "Server Gateway"}
+                    onChange={(e) => setSendPromptVia(e.target.value)}
+                  >
+                    <option value="Server Gateway">
+                      Send Prompt via Server Gateway
+                    </option>
+                    <option value="User Browser">
+                      Send Prompt via User Browser
+                    </option>
+                  </select>
 
                   <h3 className="text-lg font-semibold mt-4">Enabled Rules</h3>
                   {Object.keys(enabledRules).map((rule) => {
