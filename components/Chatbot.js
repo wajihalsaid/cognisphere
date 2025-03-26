@@ -158,7 +158,7 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
-      setSendPromptVia(JSON.parse(storedSettings).storedSettings.sendPromptVia ?? "Server Gateway");
+      setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");
     } else {
       const settings = {
         aiDefenseMode,
@@ -202,8 +202,7 @@ const Chatbot = () => {
           setApiServer(JSON.parse(storedSettings).apiServer);
           setApiKey(JSON.parse(storedSettings).apiKey);
           setEnabledRules(JSON.parse(storedSettings).enabledRules);
-          setSendPromptVia(JSON.parse(storedSettings).storedSettings.sendPromptVia ?? "Server Gateway");
-        }
+          setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");        }
       }
     };
 
@@ -225,8 +224,7 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
-      setSendPromptVia(JSON.parse(storedSettings).storedSettings.sendPromptVia ?? "Server Gateway");
-    }
+      setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");    }
     //  }
   }, [showAdmin]); // 🔥 Triggers update when showAdmin changes
 
@@ -431,8 +429,7 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
-      setSendPromptVia(JSON.parse(storedSettings).storedSettings.sendPromptVia ?? "Server Gateway");
-    }
+      setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");    }
 
     let answer;
     let response;
