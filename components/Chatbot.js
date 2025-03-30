@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiSend, FiRefreshCcw, FiTerminal } from "react-icons/fi";
-import { getOpenAIResponse, getGeminiResponse } from "../lib/api";
+import {
+  getOpenAIResponse,
+  getGeminiResponse,
+  getBedrockResponse,
+} from "../lib/api";
 import CryptoJS from "crypto-js";
 import { useRouter } from "next/router";
 import { Icon } from "@iconify/react";
@@ -158,7 +162,9 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
-      setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");
+      setSendPromptVia(
+        JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway"
+      );
     } else {
       const settings = {
         aiDefenseMode,
@@ -202,7 +208,10 @@ const Chatbot = () => {
           setApiServer(JSON.parse(storedSettings).apiServer);
           setApiKey(JSON.parse(storedSettings).apiKey);
           setEnabledRules(JSON.parse(storedSettings).enabledRules);
-          setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");        }
+          setSendPromptVia(
+            JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway"
+          );
+        }
       }
     };
 
@@ -224,18 +233,12 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
-      setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");    }
+      setSendPromptVia(
+        JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway"
+      );
+    }
     //  }
   }, [showAdmin]); // 🔥 Triggers update when showAdmin changes
-
-  /*
-  useEffect(() => {
-    const mod = Object.entries(enabledRules)
-      .filter(([_, value]) => value.enabled) // Filter enabled rules
-      .map(([key]) => ({ rule_name: key })); // Map to required format
-    console.log("enabled rules:", mod);
-  }, [showAdmin]);
-  */
 
   useEffect(() => {
     const loadSettings = () => {
@@ -378,6 +381,8 @@ const Chatbot = () => {
       encryptedKey = localStorage.getItem("META_LLM_API_KEY");
     } else if (llm === "Gemini") {
       encryptedKey = localStorage.getItem("GEMINI_API_KEY");
+    } else if (llm.startsWith("bedrock")) {
+      encryptedKey = localStorage.getItem("AWS_SECRET_KEY");
     }
     return decryptKey(encryptedKey);
   };
@@ -388,7 +393,6 @@ const Chatbot = () => {
       ? apiKey.replace(/(.{4})(.*)(.{4})/, "$1******$3")
       : "[REDACTED]";
   };
-
   const handleAskQuestion = async (message) => {
     const userQuestion = question || message;
     setNewQuestion(userQuestion);
@@ -402,8 +406,16 @@ const Chatbot = () => {
     setLoading(true);
 
     const apiLLMKey = getAPIKey(selectedLLM);
+    const AWS_REGION = localStorage.getItem("AWS_REGION");
+    const AWS_ACCESS_KEY = decryptKey(localStorage.getItem("AWS_ACCESS_KEY"));
+    const AWS_SECRET_KEY = apiLLMKey;
+
     if (!apiLLMKey) {
-      alert("API key not found or invalid!");
+      if (selectedLLM.startsWith("bedrock")) {
+        alert("AWS keys not found or invalid!");
+      } else {
+        alert("API key not found or invalid!");
+      }
       setLoading(false);
       return;
     }
@@ -429,7 +441,10 @@ const Chatbot = () => {
       setApiServer(JSON.parse(storedSettings).apiServer);
       setApiKey(JSON.parse(storedSettings).apiKey);
       setEnabledRules(JSON.parse(storedSettings).enabledRules);
-      setSendPromptVia(JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway");    }
+      setSendPromptVia(
+        JSON.parse(storedSettings).sendPromptVia ?? "Server Gateway"
+      );
+    }
 
     let answer;
     let response;
@@ -466,11 +481,11 @@ const Chatbot = () => {
                 gatewayUrl,
               })
             : await getOpenAIResponse(userQuestion, selectedLLM);
-        // console.log(response)
+        //console.log(response);
         answer =
-          response?.data?.response?.choices[0]?.message?.content ??
-          response?.response?.data?.choices[0]?.message?.content ??
-          response?.data?.candidates[0]?.content.parts[0].text ??
+          response?.data?.response?.choices?.[0]?.message?.content ??
+          response?.response?.data?.choices?.[0]?.message?.content ??
+          response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ??
           "No response received.";
       } else if (selectedLLM === "Gemini") {
         response =
@@ -491,6 +506,32 @@ const Chatbot = () => {
           response?.data?.response?.candidates[0]?.content.parts[0].text;
         ("No response received.");
         //console.log("answer: ", answer);
+      } else if (selectedLLM.startsWith("bedrock")) {
+        let modelId = selectedLLM.replace("bedrock - ", "");
+        response =
+          aiDefenseMode === "browser"
+            ? await getBedrockResponse(userQuestion, modelId)
+            : sendPromptVia === "Server Gateway"
+            ? await axios.post("/api/bedrock", {
+                modelId,
+                userQuestion,
+                AWS_REGION,
+                AWS_ACCESS_KEY,
+                AWS_SECRET_KEY,
+                aiDefenseMode,
+                gatewayUrl,
+                sendPromptVia,
+              })
+            : await getBedrockResponse(userQuestion, modelId);
+
+        answer =
+          response?.response?.data?.candidates?.[0]?.content?.parts[0]?.text ??
+          response?.data?.response?.candidates?.[0]?.content?.parts[0]?.text ??
+          response?.data?.body.content?.[0]?.text ??
+          response?.data?.response?.body ??
+          response?.body?.output?.message?.content?.[0]?.text ??
+          response?.data?.body?.output?.message?.content?.[0].text ??
+          "No response received.";
       }
 
       // Log the POST request details without the API key
@@ -512,7 +553,8 @@ const Chatbot = () => {
         <pre key={prevLogs.length}>
           <span className="text-green-400">Response:</span> {"\n"}
           {JSON.stringify(
-            response?.status ??
+            response?.data?.response?.$metadata?.httpStatusCode ??
+              response?.status ??
               response?.response?.status ??
               "Failed to collect logs",
             null,
@@ -526,15 +568,21 @@ const Chatbot = () => {
             2
           )}{" "}
           {JSON.stringify(
-            response?.headers ??
+            response?.data?.headers ??
+              response?.data?.empty ??
+              response?.headers ??
               response?.response?.headers ??
+              response?.headers?.headers ??
               "Failed to collect logs",
             null,
             2
           )}{" "}
           {JSON.stringify(
-            response?.data ??
+            response?.data?.body ??
+              response?.data?.response ??
               response?.response?.data ??
+              response?.body ??
+              response?.data ??
               "Failed to collect logs",
             null,
             2
@@ -579,17 +627,9 @@ const Chatbot = () => {
             saveHistory(aiAnswer);
             aiDefenseTrigger = 1;
           } catch (error) {
-            console.log(error);
+            //console.log(error);
           }
         }
-
-        //console.log("inspectionResutls:", inspectionResutls?.data?.response?.is_safe ?? true);
-        //console.log("inspectionResutls:", inspectionResutls?.data?.response?.classifications[0] ?? []);
-        //console.log("inspectionResutls:", inspectionResutls?.data?.response?.attack_technique) ?? [];
-        //console.log("inspectionResutls:", inspectionResutls?.data?.response?.severity ?? []);
-        //console.log("inspectionResutls:", inspectionResutls?.data?.response?.rules[0]?.rule_name ?? []);
-        //console.log("inspectionResutls:", inspectionResutls?.data?.response?.rules[0]?.entity_types[0] ?? []);
-        //alert (inspectionResutls.data.response.classifications)
 
         // Log API Inspect Call details without the API key
         setLogs((prevLogs) => [
@@ -643,6 +683,8 @@ const Chatbot = () => {
       setNewQuestion("");
     } catch (error) {
       // Log the failed POST request details without the API key
+      //console.log(error);
+
       setLogs((prevLogs) => [
         ...prevLogs,
         <pre key={prevLogs.length}>
@@ -655,10 +697,14 @@ const Chatbot = () => {
         </pre>,
       ]);
 
-      //console.error("OpenAI API Error:", error.response ? error.response.data : error.message);
-      //console.error("OpenAI API Error:", error);
+
       const errorMessage = `API Call Failed: ${JSON.stringify(
-        error?.response?.data?.error ?? error ?? "Unknow Issue",
+        error?.response?.data?.errorDetails?.message ??
+          error?.response?.data?.body?.message ??
+          error?.response?.data?.body ??
+          error?.response?.data?.error ??
+          error ??
+          "Unknow Issue",
         null,
         2
       )}`;
@@ -671,7 +717,13 @@ const Chatbot = () => {
         </pre>,
       ]);
       //alert("Failed to fetch the answer. Please try again.");
-      let answer = "No response";
+      let answer =
+        aiDefenseMode === "gateway" &&
+        (error.message === "Request failed with status code 404" ||
+          error.message === "NetworkError when attempting to fetch resource.")
+          ? "Please make sure you are using the righ AI Defense Gateway endpoint URL"
+          : "No response";
+
       const newAnswer = { userQuestion, answer };
       saveHistory(newAnswer);
       setLoading(false);
@@ -1008,7 +1060,7 @@ const Chatbot = () => {
           <select
             onChange={handleLLMChange}
             value={selectedLLM}
-            className="w-50 p-2 bg-gray-700 rounded-lg text-white focus:outline-none"
+            className="w-90 p-2 bg-gray-700 rounded-lg text-white focus:outline-none"
           >
             <option value="gpt-4.5-preview">OpenAI GPT-4.5</option>
             <option value="o3-mini">OpenAI o3-mini</option>
@@ -1019,6 +1071,60 @@ const Chatbot = () => {
             </option>
             <option value="deepseek-r1-distill-llama-70b">deepseek-r1</option>
             <option value="Gemini">gemini-2.0-flash</option>
+            <option value="bedrock - anthropic.claude-3-5-sonnet-20240620-v1:0">
+              Bedrock - anthropic.claude-3-5-sonnet-20240620-v1:0
+            </option>
+            <option value="bedrock - anthropic.claude-3-5-haiku-20241022-v1:0">
+              Bedrock - anthropic.claude-3-5-haiku-20241022-v1:0
+            </option>
+            <option value="bedrock - anthropic.claude-3-7-sonnet-20250219-v1:0">
+              Bedrock - anthropic.claude-3-7-sonnet-20250219-v1:0
+            </option>
+            <option value="bedrock - amazon.nova-lite-v1:0">
+              Bedrock - amazon.nova-lite-v1:0
+            </option>
+            <option value="bedrock - amazon.nova-micro-v1:0">
+              Bedrock - amazon.nova-micro-v1:0
+            </option>
+            <option value="bedrock - amazon.nova-pro-v1:0">
+              Bedrock - amazon.nova-pro-v1:0
+            </option>
+            <option value="bedrock - amazon.titan-text-premier-v1:0">
+              Bedrock - amazon.titan-text-premier-v1:0
+            </option>
+            <option value="bedrock - amazon.titan-text-express-v1">
+              Bedrock - amazon.titan-text-express-v1
+            </option>
+            <option value="bedrock - amazon.titan-text-lite-v1">
+              Bedrock - amazon.titan-text-lite-v1
+            </option>
+            <option value="bedrock - meta.llama3-3-70b-instruct-v1:0">
+              Bedrock - meta.llama3-3-70b-instruct-v1:0
+            </option>
+            <option value="bedrock - meta.llama3-2-11b-instruct-v1:0">
+              Bedrock - meta.llama3-2-11b-instruct-v1:0
+            </option>
+            <option value="bedrock - meta.llama3-1-70b-instruct-v1:0">
+              Bedrock - meta.llama3-1-70b-instruct-v1:0
+            </option>
+            <option value="bedrock - meta.llama3-1-8b-instruct-v1:0">
+              Bedrock - meta.llama3-1-8b-instruct-v1:0
+            </option>
+            <option value="bedrock - meta.llama3-8b-instruct-v1:0">
+              Bedrock - meta.llama3-8b-instruct-v1:0
+            </option>
+            <option value="bedrock - mistral.mistral-7b-instruct-v0:2">
+              Bedrock - mistral.mistral-7b-instruct-v0:2
+            </option>
+            <option value="bedrock - mistral.mistral-large-2402-v1:0">
+              Bedrock - mistral.mistral-large-2402-v1:0
+            </option>
+            <option value="bedrock - mistral.mixtral-8x7b-instruct-v0:1">
+              Bedrock - mistral.mixtral-8x7b-instruct-v0:1
+            </option>
+            <option value="bedrock - mistral.mistral-small-2402-v1:0">
+              Bedrock - mistral.mistral-small-2402-v1:0
+            </option>
           </select>
         </div>
       </div>

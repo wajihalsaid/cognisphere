@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const apiUrl = ""; // Default OpenAI API URL
 
 export default async function handler(req, res) {
@@ -18,7 +17,7 @@ export default async function handler(req, res) {
   let apiUrl =
     llm.startsWith("gpt") || llm === "o3-mini"
       ? "https://api.openai.com/v1/chat/completions"
-      : llm.startsWith("llama") || llm.startsWith("deepseek") 
+      : llm.startsWith("llama") || llm.startsWith("deepseek")
       ? "https://api.groq.com/openai/v1/chat/completions"
       : llm === "Gemini"
       ? "https://api.gemini.com/v1"

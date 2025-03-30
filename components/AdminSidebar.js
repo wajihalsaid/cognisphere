@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FiSettings, FiX } from "react-icons/fi";
 import CryptoJS from "crypto-js";
 import axios from "axios";
+import { FiDownload, FiUpload } from "react-icons/fi"; // Import icons
 
 const predefinedQuestions = [
   "What's the weather?",
@@ -10,12 +11,49 @@ const predefinedQuestions = [
   "Give me a fun fact!",
 ];
 
+const awsRegions = [
+  "us-east-1", // US East (N. Virginia)
+  "us-east-2", // US East (Ohio)
+  "us-west-1", // US West (N. California)
+  "us-west-2", // US West (Oregon)
+  "af-south-1", // Africa (Cape Town)
+  "ap-east-1", // Asia Pacific (Hong Kong)
+  "ap-south-1", // Asia Pacific (Mumbai)
+  "ap-south-2", // Asia Pacific (Hyderabad)
+  "ap-southeast-1", // Asia Pacific (Singapore)
+  "ap-southeast-2", // Asia Pacific (Sydney)
+  "ap-southeast-3", // Asia Pacific (Jakarta)
+  "ap-southeast-4", // Asia Pacific (Melbourne)
+  "ap-northeast-1", // Asia Pacific (Tokyo)
+  "ap-northeast-2", // Asia Pacific (Seoul)
+  "ap-northeast-3", // Asia Pacific (Osaka)
+  "ca-central-1", // Canada (Central)
+  "ca-west-1", // Canada West (Calgary)
+  "eu-central-1", // Europe (Frankfurt)
+  "eu-central-2", // Europe (Zurich)
+  "eu-west-1", // Europe (Ireland)
+  "eu-west-2", // Europe (London)
+  "eu-west-3", // Europe (Paris)
+  "eu-north-1", // Europe (Stockholm)
+  "eu-south-1", // Europe (Milan)
+  "eu-south-2", // Europe (Spain)
+  "il-central-1", // Israel (Tel Aviv)
+  "me-central-1", // Middle East (UAE)
+  "me-south-1", // Middle East (Bahrain)
+  "sa-east-1", // South America (São Paulo)
+  "us-gov-east-1", // AWS GovCloud (US-East)
+  "us-gov-west-1", // AWS GovCloud (US-West)
+];
+
 const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
   const [openAIKey, setOpenAIKey] = useState("");
   const [groqKey, setgroqKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
   const [newQuestion, setNewQuestion] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [awsRegion, setAwsRegion] = useState("us-east-1");
+  const [awsAccessKey, setAwsAccessKey] = useState("");
+  const [awsSecretKey, setAwsSecretKey] = useState("");
 
   const decryptKey = (encryptedKey) => {
     if (!encryptedKey) return "";
@@ -49,6 +87,88 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     "Violence & Public Safety Threats": { enabled: false, action: "Ignore" },
   });
   const [sendPromptVia, setSendPromptVia] = useState("Server Gateway");
+
+  const handleExportSettings = () => {
+    const data = {
+      OPENAI_API_KEY: localStorage.getItem("OPENAI_API_KEY"),
+      META_LLM_API_KEY: localStorage.getItem("META_LLM_API_KEY"),
+      GEMINI_API_KEY: localStorage.getItem("GEMINI_API_KEY"),
+      AWS_REGION: localStorage.getItem("AWS_REGION"),
+      AWS_ACCESS_KEY: localStorage.getItem("AWS_ACCESS_KEY"),
+      AWS_SECRET_KEY: localStorage.getItem("AWS_SECRET_KEY"),
+      AI_DEFENSE_SETTINGS: localStorage.getItem("AI_DEFENSE_SETTINGS"),
+      PREDEFINED_QUESTIONS: localStorage.getItem("PREDEFINED_QUESTIONS"),
+    };
+
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cognisphere_admin_settings.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleImportSettings = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+
+        Object.keys(importedData).forEach((key) => {
+          if (importedData[key] !== null) {
+            localStorage.setItem(key, importedData[key]);
+
+            setOpenAIKey(decryptKey(localStorage.getItem("OPENAI_API_KEY")));
+            setgroqKey(decryptKey(localStorage.getItem("META_LLM_API_KEY")));
+            setGeminiKey(decryptKey(localStorage.getItem("GEMINI_API_KEY")));
+            setAwsRegion(localStorage.getItem("AWS_REGION") || "us-east-1");
+            setAwsAccessKey(decryptKey(localStorage.getItem("AWS_ACCESS_KEY")));
+            setAwsSecretKey(decryptKey(localStorage.getItem("AWS_SECRET_KEY")));
+
+            const savedQuestions =
+              JSON.parse(localStorage.getItem("PREDEFINED_QUESTIONS")) || [];
+            setQuestions(
+              savedQuestions.length > 0 ? savedQuestions : predefinedQuestions
+            );
+
+            const storedSettings = localStorage.getItem("AI_DEFENSE_SETTINGS");
+            if (storedSettings) {
+              setAiDefenseMode(JSON.parse(storedSettings).aiDefenseMode);
+              setGatewayUrl(JSON.parse(storedSettings).gatewayUrl);
+              setApiServer(JSON.parse(storedSettings).apiServer);
+              setApiKey(decryptKey(JSON.parse(storedSettings).apiKey));
+              setEnabledRules(JSON.parse(storedSettings).enabledRules);
+            } else {
+              const settings = {
+                aiDefenseMode,
+                gatewayUrl,
+                apiServer,
+                apiKey,
+                enabledRules,
+              };
+              localStorage.setItem(
+                "AI_DEFENSE_SETTINGS",
+                JSON.stringify(settings)
+              );
+            }
+          }
+        });
+
+        alert("Settings imported successfully!");
+      } catch (error) {
+        alert("Invalid JSON file. Please check the format.");
+      }
+    };
+
+    reader.readAsText(file);
+  };
 
   const handleSaveSettings = async () => {
     if (aiDefenseMode === "browser") {
@@ -142,6 +262,9 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     setOpenAIKey(decryptKey(localStorage.getItem("OPENAI_API_KEY")));
     setgroqKey(decryptKey(localStorage.getItem("META_LLM_API_KEY")));
     setGeminiKey(decryptKey(localStorage.getItem("GEMINI_API_KEY")));
+    setAwsRegion(localStorage.getItem("AWS_REGION") || "us-east-1");
+    setAwsAccessKey(decryptKey(localStorage.getItem("AWS_ACCESS_KEY")));
+    setAwsSecretKey(decryptKey(localStorage.getItem("AWS_SECRET_KEY")));
 
     const savedQuestions =
       JSON.parse(localStorage.getItem("PREDEFINED_QUESTIONS")) || [];
@@ -194,7 +317,10 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     localStorage.setItem("OPENAI_API_KEY", encryptKey(openAIKey));
     localStorage.setItem("META_LLM_API_KEY", encryptKey(groqKey));
     localStorage.setItem("GEMINI_API_KEY", encryptKey(geminiKey));
-    alert("API Keys saved successfully!");
+    localStorage.setItem("AWS_REGION", awsRegion);
+    localStorage.setItem("AWS_ACCESS_KEY", encryptKey(awsAccessKey));
+    localStorage.setItem("AWS_SECRET_KEY", encryptKey(awsSecretKey));
+    alert("API Keys & AWS Bedrock settings saved successfully!");
   };
 
   const handleAddQuestion = () => {
@@ -224,9 +350,15 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     localStorage.removeItem("GEMINI_API_KEY");
     localStorage.removeItem("PREDEFINED_QUESTIONS");
     localStorage.removeItem("AI_DEFENSE_SETTINGS");
+    localStorage.removeItem("AWS_REGION");
+    localStorage.removeItem("AWS_ACCESS_KEY");
+    localStorage.removeItem("AWS_SECRET_KEY");
     setOpenAIKey("");
     setgroqKey("");
     setGeminiKey("");
+    setAwsRegion("us-east-1");
+    setAwsAccessKey("");
+    setAwsSecretKey("");
     setQuestions(predefinedQuestions); // Reset to default questions
 
     setAiDefenseMode("browser");
@@ -288,6 +420,32 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
         <div className="grid grid-cols-3 gap-6 h-full p-6">
           {/* 🔑 API Keys Column */}
           <div className="bg-gray-800 p-4 rounded overflow-y-auto">
+            <div className="flex space-x-4 mt-4">
+              <button
+                onClick={handleExportSettings}
+                className="bg-blue-600 hover:bg-blue-700 p-3 rounded-full text-white shadow-md"
+                title="Export Admin Settings to a File"
+              >
+                <FiDownload size={20} />
+              </button>
+
+              {/* Import Button (Hidden Input for File Selection) */}
+              <label
+                htmlFor="importSettings"
+                className="bg-green-600 hover:bg-green-700 p-3 rounded-full text-white shadow-md cursor-pointer"
+                title="Load Admin Settings from a File"
+              >
+                <FiUpload size={20} />
+              </label>
+              <input
+                id="importSettings"
+                type="file"
+                accept=".json"
+                onChange={handleImportSettings}
+                className="hidden"
+              />
+            </div>
+
             <h2 className="text-lg font-semibold mb-4">API Keys</h2>
 
             <label className="block">OpenAI API Key</label>
@@ -314,6 +472,48 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
               value={geminiKey}
               onChange={(e) => setGeminiKey(e.target.value)}
               placeholder="Enter Gemini API Key"
+              className="w-full bg-gray-700 p-2 rounded mb-2"
+            />
+
+            <h2 className="text-lg font-semibold mb-4">
+              AWS Bedrock Settings
+              <a
+                href="/bedrock.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 text-sm ml-2 underline"
+              >
+                How to integrate?
+              </a>
+            </h2>
+            <label className="block">AWS Region</label>
+            <select
+              value={awsRegion}
+              onChange={(e) => setAwsRegion(e.target.value)}
+              className="w-full bg-gray-700 p-2 rounded mb-2"
+            >
+              {awsRegions.map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
+
+            <label className="block">AWS Access Key</label>
+            <input
+              type="password"
+              value={awsAccessKey}
+              onChange={(e) => setAwsAccessKey(e.target.value)}
+              placeholder="Enter AWS Access Key"
+              className="w-full bg-gray-700 p-2 rounded mb-2"
+            />
+
+            <label className="block">AWS Secret Key</label>
+            <input
+              type="password"
+              value={awsSecretKey}
+              onChange={(e) => setAwsSecretKey(e.target.value)}
+              placeholder="Enter AWS Secret Key"
               className="w-full bg-gray-700 p-2 rounded mb-2"
             />
 
@@ -392,9 +592,9 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                 value={aiDefenseMode}
                 onChange={(e) => setAiDefenseMode(e.target.value)}
               >
-                <option value="browser">Direct(User Browser)</option>
+                <option value="browser">Direct(From User Browser)</option>
                 <option value="egress">
-                  Direct(Server Gateway/MCD Gateway)
+                  Direct(From Server via Egress Gateway/MCD)
                 </option>
                 <option value="gateway">Via AI Defense Gateway</option>
                 <option value="api">Via API</option>
@@ -415,10 +615,10 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     onChange={(e) => setSendPromptVia(e.target.value)}
                   >
                     <option value="Server Gateway">
-                      Send Prompt via Server Gateway
+                      Send Prompt from Server itself
                     </option>
                     <option value="User Browser">
-                      Send Prompt via User Browser
+                      Send Prompt from User Browser
                     </option>
                   </select>
                 </>
@@ -455,10 +655,10 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     onChange={(e) => setSendPromptVia(e.target.value)}
                   >
                     <option value="Server Gateway">
-                      Send Prompt via Server Gateway
+                      Send Prompt from Server itself
                     </option>
                     <option value="User Browser">
-                      Send Prompt via User Browser
+                      Send Prompt from User Browser
                     </option>
                   </select>
 

@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const apiUrl = ""; // Default GEMINI API URL
 
 export default async function handler(req, res) {
@@ -18,12 +17,10 @@ export default async function handler(req, res) {
 
   // Change the URL if the mode is "gateway"
   if (aiDefenseMode === "gateway" && gatewayUrl) {
-    return res
-      .status(405)
-      .json({
-        error:
-          "Gemini is currently not supported by AI Defense via Gateway, please try via API Inspection",
-      });
+    return res.status(405).json({
+      error:
+        "Gemini is currently not supported by AI Defense via Gateway, please try via API Inspection",
+    });
     //apiUrl = gatewayUrl + "/v1/chat/completions"; // Set the custom gateway URL
   }
 

@@ -9,6 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@aws-sdk/client-sts": "^3.777.0",
+    "@aws-sdk/protocol-http": "^3.370.0",
+    "@aws-sdk/signature-v4": "^3.370.0",
+    "@aws-sdk/types": "^3.775.0",
     "@iconify/react": "^5.2.0",
     "@tailwindcss/postcss": "^4.0.14",
     "axios": "^1.8.3",

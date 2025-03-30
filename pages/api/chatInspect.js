@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const chatUrl = "api/v1/inspect/chat"; // Default Chat Inspect API URL
 
 export default async function handler(req, res) {
