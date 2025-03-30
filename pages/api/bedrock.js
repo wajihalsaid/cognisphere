@@ -1,7 +1,7 @@
 import { SignatureV4 } from "@aws-sdk/signature-v4";
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@aws-sdk/protocol-http";
-import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+
 
 const maskAccessKey = (AccessKey) => {
   // Mask the API key in logs
@@ -42,15 +42,6 @@ export default async function handler(req, res) {
   });
 
   try {
-    const client = new STSClient({
-      region: region,
-      credentials: {
-        accessKeyId: accessKeyId, // Your AWS Access Key
-        secretAccessKey: secretAccessKey, // Your AWS Secret Key
-      },
-    });
-    const account = await client.send(new GetCallerIdentityCommand({}));
-    const accountNumebr = account.Account;
 
     const prompt = req.body.userQuestion;
 
@@ -71,19 +62,8 @@ export default async function handler(req, res) {
 
     const hostname = `bedrock-runtime.${region}.amazonaws.com`;
     const path = `/model/${modelId}/converse`;
-    const inferenceProfileARN = `arn:aws:bedrock:${region}:${accountNumebr}:inference-profile/${modelId}`;
 
     const requestPayload = {
-      ...((model === "anthropic.claude-3-7-sonnet-20250219-v1:0" ||
-        model === "anthropic.claude-3-5-haiku-20241022-v1:0" ||
-        model === "meta.llama3-3-70b-instruct-v1:0" ||
-        model === "meta.llama3-2-11b-instruct-v1:0" ||
-        model === "meta.llama3-1-70b-instruct-v1:0" ||
-        model === "meta.llama3-1-8b-instruct-v1:0") && {
-        inferenceConfig: {
-          inferenceProfileArn: inferenceProfileARN,
-        },
-      }),
       messages: [
         {
           role: "user",
