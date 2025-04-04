@@ -60,16 +60,16 @@ export default async function handler(req, res) {
   if (!SYSTEM_PROMPT) {
     conversation = conversation.filter((msg) => msg.role !== "system");
     // Keep only the last 9 messages
-    if (conversation.length > 9) {
-      conversation = conversation.slice(-8);
+    if (conversation.length > 19) {
+      conversation = conversation.slice(-18);
     }
   } else {
     if (!conversation.some((msg) => msg.role === "system")) {
       conversation.unshift({ role: "system", content: SYSTEM_PROMPT });
 
       // Keep only the last 9 messages + system message
-      if (conversation.length > 10) {
-        conversation = [conversation[0], ...conversation.slice(-9)];
+      if (conversation.length > 20) {
+        conversation = [conversation[0], ...conversation.slice(-19)];
       }
     }
   }

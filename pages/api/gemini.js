@@ -52,8 +52,8 @@ export default async function handler(req, res) {
   let conversation = conversationMemoryGemini[sessionId];
 
   // Keep only the last 9 messages
-  if (conversation.length > 9) {
-    conversation = conversation.slice(-9);
+  if (conversation.length > 19) {
+    conversation = conversation.slice(-18);
   }
 
   // Append new user message

@@ -76,8 +76,8 @@ export default async function handler(req, res) {
     let conversation = conversationMemoryBedrock[sessionId];
 
     // Keep only the last 9 messages
-    if (conversation.length > 9) {
-      conversation = conversation.slice(-8);
+    if (conversation.length > 19) {
+      conversation = conversation.slice(-18);
     }
 
     // Append new user message
