@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FiSend, FiRefreshCcw, FiTerminal } from "react-icons/fi";
+import {
+  FiSend,
+  FiRefreshCcw,
+  FiTerminal,
+  FiUpload,
+  FiX,
+} from "react-icons/fi";
 import {
   getOpenAIResponse,
   getGeminiResponse,
@@ -17,6 +23,14 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Clipboard, ClipboardCheck } from "lucide-react";
+import mammoth from "mammoth";
+
+let sessionId;
+
+if (typeof window !== "undefined") {
+  // This code will only run on the client-side
+  sessionId = localStorage.getItem("SESSION_ID");
+}
 
 const predefinedQuestions = [
   "What's the weather like today?",
@@ -130,6 +144,62 @@ const Chatbot = () => {
   const [showLogs, setShowLogs] = useState(false); // Toggle logs visibility
   const [showQs, setShowQs] = useState(true); // Toggle Questions List visibility
   const [showAdmin, setShowAdmin] = useState(false); // Toggle Admin Sidebar visibility
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [extractedText, setExtractedText] = useState("");
+
+  //File Handling
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      //console.log(file.type);
+      if (file.type === "application/pdf") {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onload = async () => {
+          const base64 = reader.result.split(",")[1]; // Extract base64 data
+          const response = await fetch("/api/pdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: base64 }),
+          });
+
+          const data = await response.json();
+          //console.log("Extracted PDF Text:", data.text);
+          setExtractedText(data.text);
+        };
+      } else if (
+        file.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const text = await mammoth.extractRawText({
+            arrayBuffer: e.target.result,
+          });
+          //console.log("Extracted DOCX Text:", text.value);
+          setExtractedText(text.value);
+          //console.log(extractedText);
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (file.type === "text/csv" || file.type === "text/plain") {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const text = e.target.result;
+          //console.log("Extracted DOCX Text:", text);
+          setExtractedText(text);
+          //console.log(extractedText);
+        };
+        reader.readAsText(file);
+      }
+    }
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    setExtractedText("");
+  };
 
   // AI Defense State
   const [aiDefenseMode, setAiDefenseMode] = useState("browser");
@@ -409,6 +479,7 @@ const Chatbot = () => {
     const AWS_REGION = localStorage.getItem("AWS_REGION");
     const AWS_ACCESS_KEY = decryptKey(localStorage.getItem("AWS_ACCESS_KEY"));
     const AWS_SECRET_KEY = apiLLMKey;
+    const SYSTEM_PROMPT = localStorage.getItem("systemPrompt");
 
     if (!apiLLMKey) {
       if (selectedLLM.startsWith("bedrock")) {
@@ -469,18 +540,44 @@ const Chatbot = () => {
           "deepseek-r1-distill-llama-70b",
         ].includes(selectedLLM)
       ) {
-        response =
-          aiDefenseMode === "browser"
-            ? await getOpenAIResponse(userQuestion, selectedLLM)
-            : sendPromptVia === "Server Gateway"
-            ? await axios.post("/api/openai", {
-                selectedLLM,
-                userQuestion,
-                apiLLMKey,
-                aiDefenseMode,
-                gatewayUrl,
-              })
-            : await getOpenAIResponse(userQuestion, selectedLLM);
+        if (aiDefenseMode === "browser") {
+          response = await getOpenAIResponse(
+            userQuestion,
+            selectedLLM,
+            extractedText
+          );
+        } else if (sendPromptVia === "Server Gateway") {
+          if (!sessionId || sessionId === "undefined") {
+            const res = await axios.post("/api/openai", {
+              selectedLLM,
+              userQuestion,
+              apiLLMKey,
+              aiDefenseMode,
+              gatewayUrl,
+              SYSTEM_PROMPT,
+              extractedText,
+            });
+            sessionId = res?.data?.sessionId;
+            localStorage.setItem("SESSION_ID", sessionId);
+          }
+
+          response = await axios.post("/api/openai", {
+            selectedLLM,
+            userQuestion,
+            apiLLMKey,
+            aiDefenseMode,
+            gatewayUrl,
+            SYSTEM_PROMPT,
+            sessionId, // Include session ID for chat history
+            extractedText,
+          });
+        } else {
+          response = await getOpenAIResponse(
+            userQuestion,
+            selectedLLM,
+            extractedText
+          );
+        }
         //console.log(response);
         answer =
           response?.data?.response?.choices?.[0]?.message?.content ??
@@ -488,18 +585,41 @@ const Chatbot = () => {
           response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ??
           "No response received.";
       } else if (selectedLLM === "Gemini") {
-        response =
-          aiDefenseMode === "browser"
-            ? await getGeminiResponse(userQuestion, apiLLMKey)
-            : sendPromptVia === "Server Gateway"
-            ? await axios.post("/api/gemini", {
-                selectedLLM,
-                userQuestion,
-                apiLLMKey,
-                aiDefenseMode,
-                gatewayUrl,
-              })
-            : await getGeminiResponse(userQuestion, apiLLMKey);
+        if (aiDefenseMode === "browser") {
+          response = await getGeminiResponse(
+            userQuestion,
+            apiLLMKey,
+            extractedText
+          );
+        } else if (sendPromptVia === "Server Gateway") {
+          if (!sessionId || sessionId === "undefined") {
+            const res = await axios.post("/api/gemini", {
+              selectedLLM,
+              userQuestion,
+              apiLLMKey,
+              aiDefenseMode,
+              gatewayUrl,
+              extractedText,
+            });
+            sessionId = res?.data?.sessionId;
+            localStorage.setItem("SESSION_ID", sessionId);
+          }
+          response = await axios.post("/api/gemini", {
+            selectedLLM,
+            userQuestion,
+            apiLLMKey,
+            aiDefenseMode,
+            gatewayUrl,
+            extractedText,
+            sessionId, // Include session ID for chat history
+          });
+        } else {
+          response = await getGeminiResponse(
+            userQuestion,
+            apiLLMKey,
+            extractedText
+          );
+        }
         //console.log("response: ", response);
         answer =
           response?.response?.data?.candidates[0]?.content.parts[0].text ??
@@ -508,21 +628,50 @@ const Chatbot = () => {
         //console.log("answer: ", answer);
       } else if (selectedLLM.startsWith("bedrock")) {
         let modelId = selectedLLM.replace("bedrock - ", "");
-        response =
-          aiDefenseMode === "browser"
-            ? await getBedrockResponse(userQuestion, modelId)
-            : sendPromptVia === "Server Gateway"
-            ? await axios.post("/api/bedrock", {
-                modelId,
-                userQuestion,
-                AWS_REGION,
-                AWS_ACCESS_KEY,
-                AWS_SECRET_KEY,
-                aiDefenseMode,
-                gatewayUrl,
-                sendPromptVia,
-              })
-            : await getBedrockResponse(userQuestion, modelId);
+
+        if (aiDefenseMode === "browser") {
+          response = await getBedrockResponse(
+            userQuestion,
+            modelId,
+            extractedText
+          );
+        } else if (sendPromptVia === "Server Gateway") {
+          if (!sessionId || sessionId === "undefined") {
+            const res = await axios.post("/api/bedrock", {
+              modelId,
+              userQuestion,
+              AWS_REGION,
+              AWS_ACCESS_KEY,
+              AWS_SECRET_KEY,
+              aiDefenseMode,
+              gatewayUrl,
+              sendPromptVia,
+              SYSTEM_PROMPT,
+              extractedText,
+            });
+            sessionId = res?.data?.sessionId;
+            localStorage.setItem("SESSION_ID", sessionId);
+          }
+          response = await axios.post("/api/bedrock", {
+            modelId,
+            userQuestion,
+            AWS_REGION,
+            AWS_ACCESS_KEY,
+            AWS_SECRET_KEY,
+            aiDefenseMode,
+            gatewayUrl,
+            sendPromptVia,
+            SYSTEM_PROMPT,
+            extractedText,
+            sessionId, // Include session ID for chat history
+          });
+        } else {
+          response = await getBedrockResponse(
+            userQuestion,
+            modelId,
+            extractedText
+          );
+        }
 
         answer =
           response?.response?.data?.candidates?.[0]?.content?.parts[0]?.text ??
@@ -697,7 +846,6 @@ const Chatbot = () => {
         </pre>,
       ]);
 
-
       const errorMessage = `API Call Failed: ${JSON.stringify(
         error?.response?.data?.errorDetails?.message ??
           error?.response?.data?.body?.message ??
@@ -745,6 +893,13 @@ const Chatbot = () => {
     setSelectedLLM("gpt-4");
     localStorage.removeItem("chat-history");
     localStorage.removeItem("chat-question");
+    localStorage.removeItem("CONVERSATION_OPENAI");
+    localStorage.removeItem("CONVERSATION_Gemini");
+    localStorage.removeItem("CONVERSATION_Bedrock");
+    localStorage.removeItem("SESSION_ID");
+    sessionId = "";
+    setSelectedFile(null);
+    setExtractedText("");
   };
 
   return (
@@ -903,6 +1058,17 @@ const Chatbot = () => {
                         <div className="prose prose-invert max-w-none leading-relaxed space-y-4">
                           <ReactMarkdown
                             components={{
+                              a: ({ node, href, children, ...props }) => (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 underline hover:text-blue-600"
+                                  {...props}
+                                >
+                                  {children}
+                                </a>
+                              ),
                               code({
                                 node,
                                 inline,
@@ -1052,6 +1218,34 @@ const Chatbot = () => {
             >
               <FiSend size={20} />
             </button>
+            {/* Upload button with icon inside the same container */}
+            <label
+              htmlFor="uploadDocumet"
+              className={`absolute top left-4 transform -translate-y-1/2 text-white rounded-full p-2 bg-blue-600 hover:bg-blue-700`}
+              title="Upload Document to analyze"
+            >
+              <FiUpload size={20} />
+            </label>
+            <input
+              id="uploadDocumet"
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.csv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            {selectedFile && (
+              <p className="mt-2 text-sm ">
+                File: {selectedFile.name}{" "}
+                <button
+                  onClick={handleClearFile}
+                  className={`bg-red-500 hover:bg-red-600 text-white p-1 rounded ${
+                    !selectedFile ? "hidden" : ""
+                  }`}
+                >
+                  <FiX size={16} />
+                </button>
+              </p>
+            )}
           </div>
         </div>
 

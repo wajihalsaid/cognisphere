@@ -1,4 +1,7 @@
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
+
+const conversationMemoryOpenAI = {}; // In-memory storage (resets on server restart)
 
 const apiUrl = ""; // Default OpenAI API URL
 
@@ -12,6 +15,11 @@ export default async function handler(req, res) {
   const question = req.body.userQuestion;
   const gatewayUrl = req.body.gatewayUrl;
   const aiDefenseMode = req.body.aiDefenseMode;
+  const sessionId = req.body.sessionId;
+  const extractedText = req.body.extractedText;
+
+  // Generate a session ID if it's missing
+  const userSessionId = sessionId || uuidv4();
 
   let requestDetails = "";
   let apiUrl =
@@ -41,12 +49,46 @@ export default async function handler(req, res) {
       : "[REDACTED]";
   };
 
+  // Retrieve chat history from memory storage (using sessionId)
+  if (!conversationMemoryOpenAI[sessionId]) {
+    conversationMemoryOpenAI[sessionId] = [];
+  }
+  let conversation = conversationMemoryOpenAI[sessionId];
+
+  // Ensure system message is always first if it is provided
+  const SYSTEM_PROMPT = req.body.SYSTEM_PROMPT;
+  if (!SYSTEM_PROMPT) {
+    conversation = conversation.filter((msg) => msg.role !== "system");
+    // Keep only the last 9 messages
+    if (conversation.length > 9) {
+      conversation = conversation.slice(-8);
+    }
+  } else {
+    if (!conversation.some((msg) => msg.role === "system")) {
+      conversation.unshift({ role: "system", content: SYSTEM_PROMPT });
+
+      // Keep only the last 9 messages + system message
+      if (conversation.length > 10) {
+        conversation = [conversation[0], ...conversation.slice(-9)];
+      }
+    }
+  }
+
+  // Append new user message
+  conversation.push({
+    role: "user",
+    content:
+      extractedText.trim() === ""
+        ? question
+        : `Based on this document: "${extractedText}", answer: ${question}`,
+  });
+
   try {
     const requestPayload = {
       model: llm,
       ...(llm === "o3-mini" && { reasoning_effort: "medium" }),
-      messages: [{ role: "user", content: question }],
-      max_tokens: 1000,
+      messages: [...conversation],
+      ...(llm !== "o3-mini" && { max_tokens: 1000 }),
     };
 
     const config = {
@@ -72,7 +114,24 @@ export default async function handler(req, res) {
       },
     });
 
-    res.status(200).json({ response: response.data, logs: requestDetails });
+    // Append AI response to chat history
+    const aiResponse =
+      response?.data?.choices?.[0]?.message?.content ||
+      response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response received.";
+
+    conversation.push({ role: "assistant", content: aiResponse });
+
+    // Save chat history in memory
+    conversationMemoryOpenAI[sessionId] = conversation;
+
+    res
+      .status(200)
+      .json({
+        response: response.data,
+        logs: requestDetails,
+        sessionId: userSessionId,
+      });
   } catch (error) {
     console.error("OpenAI API Error:", error); // Log full error for debugging
     const errorMessage =

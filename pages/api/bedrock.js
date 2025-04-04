@@ -1,7 +1,9 @@
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
+import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
 
+const conversationMemoryBedrock = {}; // In-memory storage (resets on server restart)
 
 const maskAccessKey = (AccessKey) => {
   // Mask the API key in logs
@@ -31,6 +33,8 @@ export default async function handler(req, res) {
   const region = req.body.AWS_REGION;
   const accessKeyId = req.body.AWS_ACCESS_KEY;
   const secretAccessKey = req.body.AWS_SECRET_KEY;
+  const sessionId = req.body.sessionId;
+  const extractedText = req.body.extractedText;
   const signer = new SignatureV4({
     service: "bedrock",
     region: region,
@@ -41,8 +45,10 @@ export default async function handler(req, res) {
     sha256: Sha256,
   });
 
-  try {
+  // Generate a session ID if it's missing
+  const userSessionId = sessionId || uuidv4();
 
+  try {
     const prompt = req.body.userQuestion;
 
     const model = req.body.modelId;
@@ -63,18 +69,43 @@ export default async function handler(req, res) {
     const hostname = `bedrock-runtime.${region}.amazonaws.com`;
     const path = `/model/${modelId}/converse`;
 
+    // Retrieve chat history from memory storage (using sessionId)
+    if (!conversationMemoryBedrock[sessionId]) {
+      conversationMemoryBedrock[sessionId] = [];
+    }
+    let conversation = conversationMemoryBedrock[sessionId];
+
+    // Keep only the last 9 messages
+    if (conversation.length > 9) {
+      conversation = conversation.slice(-8);
+    }
+
+    // Append new user message
+
+    conversation.push({
+      role: "user",
+      content:
+        extractedText.trim() === ""
+          ? prompt
+          : `Based on this document: "${extractedText}", answer: ${prompt}`,
+    });
+
+    // Prepare the request payload using chat history
     const requestPayload = {
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
+      messages: conversation.map((msg) => ({
+        role: msg.role,
+        content: [{ text: msg.content }],
+      })),
     };
+
+    // Add system prompt if it exists and is supported
+    const SYSTEM_PROMPT = req.body.SYSTEM_PROMPT;
+    if (
+      SYSTEM_PROMPT &&
+      (model.startsWith("meta") || model.startsWith("anthropic"))
+    ) {
+      requestPayload.system = [{ text: SYSTEM_PROMPT }];
+    }
 
     let apiUrl = `https://${hostname}${path}`;
 
@@ -129,11 +160,20 @@ export default async function handler(req, res) {
         ? await response.json()
         : await response.text();
 
+    // Append AI response to chat history
+    const aiResponse =
+      jsonResponse.output?.message?.content?.[0]?.text ??
+      "No response received.";
+
+    conversation.push({ role: "assistant", content: aiResponse });
+    conversationMemoryBedrock[sessionId] = conversation;
+
     res.status(response.status).json({
       response: response,
       body: jsonResponse,
       headers: headersObject,
       logs: requestDetails,
+      sessionId: userSessionId,
     });
   } catch (error) {
     // Extract error details safely

@@ -1,4 +1,7 @@
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
+
+const conversationMemoryGemini = {}; // In-memory storage (resets on server restart)
 
 const apiUrl = ""; // Default GEMINI API URL
 
@@ -12,6 +15,11 @@ export default async function handler(req, res) {
   const question = req.body.userQuestion;
   const gatewayUrl = req.body.gatewayUrl;
   const aiDefenseMode = req.body.aiDefenseMode;
+  const sessionId = req.body.sessionId;
+  const extractedText = req.body.extractedText;
+
+  // Generate a session ID if it's missing
+  const userSessionId = sessionId || uuidv4();
 
   let requestDetails = "";
 
@@ -37,12 +45,33 @@ export default async function handler(req, res) {
       : "[REDACTED]";
   };
 
+  // Retrieve chat history from memory storage (using sessionId)
+  if (!conversationMemoryGemini[sessionId]) {
+    conversationMemoryGemini[sessionId] = [];
+  }
+  let conversation = conversationMemoryGemini[sessionId];
+
+  // Keep only the last 9 messages
+  if (conversation.length > 9) {
+    conversation = conversation.slice(-9);
+  }
+
+  // Append new user message
+  conversation.push({
+    role: "user",
+    content:
+      extractedText.trim() === ""
+        ? question
+        : `Based on this document: "${extractedText}", answer: ${question}`,
+  });
+
   try {
+    // Prepare the request payload with full context
     const requestPayload = {
-      model: llm,
-      ...(llm === "o3-mini" && { reasoning_effort: "medium" }),
-      messages: [{ role: "user", content: question }],
-      max_tokens: 1000,
+      contents: conversation.map((msg) => ({
+        role: msg.role,
+        parts: [{ text: msg.content }],
+      })),
     };
 
     // Log HTTP POST request details
@@ -55,16 +84,12 @@ export default async function handler(req, res) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: {
-        contents: [{ parts: [{ text: question }] }],
-      },
+      body: requestPayload,
     };
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        contents: [{ parts: [{ text: question }] }],
-      },
+      requestPayload,
       {
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +97,24 @@ export default async function handler(req, res) {
       }
     );
 
-    res.status(200).json({ response: response.data, logs: requestDetails });
+    // Append AI response to chat history
+    const aiResponse =
+      response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ??
+      response?.data?.response?.candidates?.[0]?.content?.parts?.[0]?.text ??
+      "No response received.";
+
+    conversation.push({ role: "assistant", content: aiResponse });
+
+    // Save chat history in memory
+    conversationMemoryGemini[sessionId] = conversation;
+
+    res
+      .status(200)
+      .json({
+        response: response.data,
+        logs: requestDetails,
+        sessionId: userSessionId,
+      });
   } catch (error) {
     console.error("OpenAI API Error:", error); // Log full error for debugging
     const errorMessage =

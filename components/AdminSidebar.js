@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { FiSettings, FiX } from "react-icons/fi";
 import CryptoJS from "crypto-js";
 import axios from "axios";
-import { FiDownload, FiUpload } from "react-icons/fi"; // Import icons
+import {
+  FiDownload,
+  FiUpload,
+  FiSave,
+  FiTrash,
+  FiCopy,
+  FiInfo,
+} from "react-icons/fi"; // Import icons
 
 const predefinedQuestions = [
   "What's the weather?",
@@ -54,6 +61,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
   const [awsRegion, setAwsRegion] = useState("us-east-1");
   const [awsAccessKey, setAwsAccessKey] = useState("");
   const [awsSecretKey, setAwsSecretKey] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
 
   const decryptKey = (encryptedKey) => {
     if (!encryptedKey) return "";
@@ -64,6 +72,23 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
       console.error("Error decrypting key:", error);
       return "";
     }
+  };
+
+  // System Prompt Actions
+  const handleSaveSystemPrompt = () => {
+    localStorage.setItem("systemPrompt", systemPrompt);
+    alert("System prompt saved successfully.");
+  };
+
+  const handleClearSystemPrompt = () => {
+    localStorage.removeItem("systemPrompt");
+    setSystemPrompt("");
+    alert("System prompt cleared.");
+  };
+
+  // Handle copy to clipboard
+  const handleCopy = () => {
+    navigator.clipboard.writeText(systemPrompt).then(() => {});
   };
 
   // AI Defense State
@@ -98,6 +123,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
       AWS_SECRET_KEY: localStorage.getItem("AWS_SECRET_KEY"),
       AI_DEFENSE_SETTINGS: localStorage.getItem("AI_DEFENSE_SETTINGS"),
       PREDEFINED_QUESTIONS: localStorage.getItem("PREDEFINED_QUESTIONS"),
+      systemPrompt: localStorage.getItem("systemPrompt"),
     };
 
     const jsonString = JSON.stringify(data, null, 2);
@@ -131,6 +157,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
             setAwsRegion(localStorage.getItem("AWS_REGION") || "us-east-1");
             setAwsAccessKey(decryptKey(localStorage.getItem("AWS_ACCESS_KEY")));
             setAwsSecretKey(decryptKey(localStorage.getItem("AWS_SECRET_KEY")));
+            setSystemPrompt(localStorage.getItem("systemPrompt"));
 
             const savedQuestions =
               JSON.parse(localStorage.getItem("PREDEFINED_QUESTIONS")) || [];
@@ -265,6 +292,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     setAwsRegion(localStorage.getItem("AWS_REGION") || "us-east-1");
     setAwsAccessKey(decryptKey(localStorage.getItem("AWS_ACCESS_KEY")));
     setAwsSecretKey(decryptKey(localStorage.getItem("AWS_SECRET_KEY")));
+    setSystemPrompt(localStorage.getItem("systemPrompt") || "");
 
     const savedQuestions =
       JSON.parse(localStorage.getItem("PREDEFINED_QUESTIONS")) || [];
@@ -353,6 +381,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     localStorage.removeItem("AWS_REGION");
     localStorage.removeItem("AWS_ACCESS_KEY");
     localStorage.removeItem("AWS_SECRET_KEY");
+    localStorage.removeItem("systemPrompt");
     setOpenAIKey("");
     setgroqKey("");
     setGeminiKey("");
@@ -360,6 +389,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     setAwsAccessKey("");
     setAwsSecretKey("");
     setQuestions(predefinedQuestions); // Reset to default questions
+    setSystemPrompt("");
 
     setAiDefenseMode("browser");
     setGatewayUrl("");
@@ -575,6 +605,62 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                 <p className="text-gray-400">No predefined questions.</p>
               )}
             </ul>
+
+            <div className="mb-4 p-4 bg-gray-800 rounded relative">
+              <div className="flex items-center space-x-2 mt-2">
+                <h3 className="text-lg font-semibold mb-2 text-left ">
+                  System Prompt
+                </h3>
+                <FiInfo
+                  size={16}
+                  className="text-gray-400 justify-center"
+                  title="This is used to instruct the LLM on how to behave. Supported on OpenAI, Llama, and Anthropic."
+                />
+
+                <div className="flex-grow flex justify-end space-x-2 mt-2">
+                  <button
+                    onClick={handleSaveSystemPrompt}
+                    disabled={systemPrompt?.trim() === "" || systemPrompt === null}
+                    className={`p-1 rounded flex items-center justify-center text-white ${
+                      (systemPrompt?.trim() === "" || systemPrompt === null)
+                        ? "bg-gray-500 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    <FiSave size={16} />
+                  </button>
+                  <button
+                    onClick={handleClearSystemPrompt}
+                    disabled={systemPrompt?.trim() === "" || systemPrompt === null}
+                    className={`p-1 rounded flex items-center justify-center text-white ${
+                      (systemPrompt?.trim() === ""  || systemPrompt === null)
+                        ? "bg-gray-500 cursor-not-allowed"
+                        : "bg-red-600 hover:bg-red-700"
+                    }`}
+                  >
+                    <FiTrash size={16} />
+                  </button>
+                  <button
+                    onClick={handleCopy}
+                    disabled={systemPrompt?.trim() === ""  || systemPrompt === null}
+                    className={`p-1 rounded flex items-center justify-center text-white ${
+                      (systemPrompt?.trim() === ""  || systemPrompt === null)
+                        ? "bg-gray-500 cursor-not-allowed"
+                        : "bg-yellow-600 hover:bg-yellow-700"
+                    }`}
+                  >
+                    <FiCopy size={16} />
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                placeholder="Enter System Prompt"
+                className="p-2 bg-gray-700 rounded-lg focus:outline-none text-white w-full h-54 pr-12"
+              />
+            </div>
+            <div className="mb-4 p-4 bg-gray-800 rounded relative"></div>
           </div>
 
           {/* AI Defense Column */}
