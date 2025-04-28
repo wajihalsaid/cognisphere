@@ -1,12 +1,9 @@
 import axios from "axios";
-
 const chatUrl = "api/v1/inspect/chat"; // Default Chat Inspect API URL
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-
   const apiKey = req.body.apiKey;
   const promptRole = req.body.promptRole;
   const promptContent = req.body.userQuestion;
@@ -15,28 +12,14 @@ export default async function handler(req, res) {
   const enabledRules = req.body.enabledRules;
   const apiServer = req.body.apiServer;
   const aiDefenseMode = req.body.aiDefenseMode;
-
   const maskAPIKey = (apiKey) => {
     // Mask the API key in logs
     return apiKey
       ? apiKey.replace(/(.{4})(.*)(.{4})/, "$1******$3")
       : "[REDACTED]";
   };
-
   let apiUrl = apiServer + chatUrl;
-
   let requestDetails = "";
-  /*
-  console.log("apiKey:", apiKey);
-  console.log("promptRole:", promptRole);
-  console.log("promptContent:", promptContent);
-  console.log("responseRole:", responseRole);
-  console.log("responseContent:", responseContent);
-  console.log("enabledRules:", enabledRules);
-  console.log("apiServer:", apiServer);
-  console.log("apiUrl:", apiUrl);
-  */
-
   try {
     const requestPayload = {
       messages: [
@@ -54,19 +37,16 @@ export default async function handler(req, res) {
         enabled_rules: enabledRules,
       },
     };
-
     const maskedHeaders = {
       "X-Cisco-AI-Defense-API-Key": maskAPIKey(apiKey),
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-
     const headers = {
       "X-Cisco-AI-Defense-API-Key": apiKey,
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-
     // Log HTTP POST request details
     requestDetails = {
       via: aiDefenseMode,
@@ -75,17 +55,9 @@ export default async function handler(req, res) {
       headers: maskedHeaders,
       body: requestPayload,
     };
-
-    // console.log("🔄 Sending request...");
-    // console.log("🌍 URL:", apiUrl);
-    // console.log("📩 Headers:", headers);
-    // console.log("📦 Payload:", JSON.stringify(requestPayload, null, 2));
-
     const response = await axios.post(apiUrl, requestPayload, { headers });
-
     res.status(200).json({ response: response.data, logs: requestDetails });
   } catch (error) {
-    //console.error("AI Defense API Error:", error); // Log full error for debugging
     const errorMessage =
       error.status === 401
         ? "API Inspect Request Failed due to: Unauthorized (Invalid API Key)"
