@@ -520,8 +520,11 @@ const Chatbot = () => {
     let answer;
     let response;
     let aiDefenseTrigger;
+    let aiDefenseTriggerAction;
+    let aiDefenseTriggerMessage;
     try {
       aiDefenseTrigger = 0;
+      aiDefenseTriggerAction = "green";
       // Mask API key before logging
       const maskedAPIKey = maskAPIKey(apiLLMKey);
 
@@ -530,10 +533,105 @@ const Chatbot = () => {
       setLogs((prevLogs) => [...prevLogs, logMessage]);
 
       // API response handling
+      if (aiDefenseMode === "api") {
+        const inspectionResutls =
+          aiDefenseMode === "api"
+            ? await axios.post("/api/chatInspectPrompt", {
+                promptRole: "user",
+                userQuestion,
+                apiKey: decryptKey(apiKey),
+                enabledRules: parseEnabledRules(enabledRules),
+                apiServer,
+                aiDefenseMode,
+              })
+            : [];
+
+        const violations = processInspectionResults(
+          inspectionResutls?.data?.response ?? [],
+          enabledRules
+        );
+        //console.log ("violations: ", violations || null);
+        if (violations !== null) {
+          //console.log ("violations: ", violations || null);
+          const aiDefenseMessage = generateAlertMessage(violations).message;
+          const aiDefenseAction = generateAlertMessage(violations).type;
+          aiDefenseTriggerAction = aiDefenseAction;
+          aiDefenseTriggerMessage = aiDefenseMessage;
+          console.log(aiDefenseAction);
+          try {
+            const aiAnswer = {
+              userQuestion,
+              aiDefenseMessage,
+              aiDefenseAction,
+            };
+            saveHistory(aiAnswer);
+            aiDefenseTrigger = 1;
+          } catch (error) {
+            //console.log(error);
+          }
+        }
+
+        // Log API Inspect Call details without the API key
+        setLogs((prevLogs) => [
+          ...prevLogs,
+          <pre key={prevLogs.length}>
+            <span className="text-yellow-400">--API Prmopt Inspect Call--</span>{" "}
+            {"\n"}
+            {JSON.stringify(inspectionResutls.data.logs, null, 2)}
+          </pre>,
+        ]);
+
+        // Log Inspection Result Response details
+        setLogs((prevLogs) => [
+          ...prevLogs,
+          <pre key={prevLogs.length}>
+            <span className="text-orange-400">
+              --API Prompt Inspect Result--
+            </span>{" "}
+            {"\n"}
+            {JSON.stringify(
+              inspectionResutls.status ?? inspectionResutls.response.status,
+              null,
+              2
+            )}{" "}
+            {JSON.stringify(
+              inspectionResutls.statusText ??
+                inspectionResutls.response.statusText,
+              null,
+              2
+            )}{" "}
+            {JSON.stringify(
+              inspectionResutls.headers ?? inspectionResutls.response.headers,
+              null,
+              2
+            )}{" "}
+            {JSON.stringify(
+              inspectionResutls.data.response ??
+                inspectionResutls.response.data,
+              null,
+              2
+            )}
+          </pre>,
+        ]);
+        if (aiDefenseTrigger === 1 && aiDefenseTriggerAction === "red") {
+          aiDefenseTrigger = 0;
+          const newQuestion = { userQuestion };
+          saveQuestions(newQuestion);
+          setLoading(false);
+          setQuestion("");
+          setNewQuestion("");
+          return;
+        }
+        if (aiDefenseTrigger === 1 && aiDefenseTriggerAction === "orange") {
+          aiDefenseTrigger = 0;
+        }
+      }
+
       if (
         [
           "gpt-4o",
           "gpt-4.5-preview",
+          "gpt-4.1",
           "o3-mini",
           "gpt-4",
           "llama-3.3-70b-versatile",
@@ -739,7 +837,12 @@ const Chatbot = () => {
         </pre>,
       ]);
 
-      const newAnswer = { userQuestion, answer };
+      const newAnswer = {
+        userQuestion,
+        ...(aiDefenseTriggerAction === "orange" && { aiDefenseTriggerMessage }),
+        ...(aiDefenseTriggerAction === "orange" && { aiDefenseTriggerAction }),
+        answer,
+      };
 
       if (aiDefenseMode === "api") {
         const inspectionResutls =
@@ -769,6 +872,12 @@ const Chatbot = () => {
           try {
             const aiAnswer = {
               userQuestion,
+              ...(aiDefenseTriggerAction === "orange" && {
+                aiDefenseTriggerMessage,
+              }),
+              ...(aiDefenseTriggerAction === "orange" && {
+                aiDefenseTriggerAction,
+              }),
               answer,
               aiDefenseMessage,
               aiDefenseAction,
@@ -784,7 +893,10 @@ const Chatbot = () => {
         setLogs((prevLogs) => [
           ...prevLogs,
           <pre key={prevLogs.length}>
-            <span className="text-yellow-400">--API Inspect Call--</span> {"\n"}
+            <span className="text-yellow-400">
+              --API Prompt and Response Inspect Call--
+            </span>{" "}
+            {"\n"}
             {JSON.stringify(inspectionResutls.data.logs, null, 2)}
           </pre>,
         ]);
@@ -793,7 +905,9 @@ const Chatbot = () => {
         setLogs((prevLogs) => [
           ...prevLogs,
           <pre key={prevLogs.length}>
-            <span className="text-orange-400">--API Inspect Response--</span>{" "}
+            <span className="text-orange-400">
+              --API Prompt and Response Inspect Result--
+            </span>{" "}
             {"\n"}
             {JSON.stringify(
               inspectionResutls.status ?? inspectionResutls.response.status,
@@ -1052,6 +1166,18 @@ const Chatbot = () => {
                       </div>
                     </div>
 
+                    {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
+                    {item.aiDefenseTriggerAction === "orange" && (
+                      <div className="flex justify-center">
+                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[50%] text-center flex">
+                          <span className="text-4xl">⚠️</span>
+                          <p className="text-sm font-bold">
+                            {item.aiDefenseTriggerMessage}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* AI Answer (Left-Aligned Dark Bubble) */}
                     <div className="flex justify-start">
                       <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-none">
@@ -1256,6 +1382,7 @@ const Chatbot = () => {
             value={selectedLLM}
             className="w-90 p-2 bg-gray-700 rounded-lg text-white focus:outline-none"
           >
+            <option value="gpt-4.1">OpenAI GPT-4.1</option>
             <option value="gpt-4.5-preview">OpenAI GPT-4.5</option>
             <option value="o3-mini">OpenAI o3-mini</option>
             <option value="gpt-4o">OpenAI GPT-4o</option>
