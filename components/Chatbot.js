@@ -146,6 +146,7 @@ const Chatbot = () => {
   const [showAdmin, setShowAdmin] = useState(false); // Toggle Admin Sidebar visibility
   const [selectedFile, setSelectedFile] = useState(null);
   const [extractedText, setExtractedText] = useState("");
+  const [promptAlert, setPromptAlert] = useState(false);
 
   //File Handling
   const handleFileChange = (event) => {
@@ -472,6 +473,7 @@ const Chatbot = () => {
     // alert(userQuestion);
 
     setQuestionList((prev) => [...prev, { userQuestion }]);
+    setPromptAlert(false);
 
     setLoading(true);
 
@@ -557,7 +559,6 @@ const Chatbot = () => {
           const aiDefenseAction = generateAlertMessage(violations).type;
           aiDefenseTriggerAction = aiDefenseAction;
           aiDefenseTriggerMessage = aiDefenseMessage;
-          console.log(aiDefenseAction);
           try {
             const aiAnswer = {
               userQuestion,
@@ -624,6 +625,7 @@ const Chatbot = () => {
         }
         if (aiDefenseTrigger === 1 && aiDefenseTriggerAction === "orange") {
           aiDefenseTrigger = 0;
+          setPromptAlert(true);
         }
       }
 
@@ -1179,6 +1181,7 @@ const Chatbot = () => {
                     )}
 
                     {/* AI Answer (Left-Aligned Dark Bubble) */}
+                    {item.answer && (
                     <div className="flex justify-start">
                       <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-none">
                         <div className="prose prose-invert max-w-none leading-relaxed space-y-4">
@@ -1242,6 +1245,7 @@ const Chatbot = () => {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
                     {item.aiDefenseAction === "orange" && (
@@ -1261,11 +1265,13 @@ const Chatbot = () => {
               {/* ✅ AI Thinking Message (Only Shows When Loading) */}
               {loading && (
                 <>
+                {promptAlert === false && (
                   <div className="flex justify-end">
                     <div className="bg-blue-500 text-white rounded-lg px-4 py-2 max-w-[75%]">
                       <p className="text-sm">{newQuestion}</p>
                     </div>
                   </div>
+                )}
                   <div className="flex justify-start items-center">
                     <div className="bg-gray-800 text-gray-400 rounded-lg px-4 py-2 max-w-[75%] flex items-center">
                       <div className="animate-spin mr-2">
