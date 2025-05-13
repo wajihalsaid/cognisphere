@@ -61,6 +61,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
   const [awsRegion, setAwsRegion] = useState("us-east-1");
   const [awsAccessKey, setAwsAccessKey] = useState("");
   const [awsSecretKey, setAwsSecretKey] = useState("");
+  const [awsBedrockCustomURL, setAwsBedrockCustomURL] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
 
   const decryptKey = (encryptedKey) => {
@@ -157,6 +158,9 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
             setAwsRegion(localStorage.getItem("AWS_REGION") || "us-east-1");
             setAwsAccessKey(decryptKey(localStorage.getItem("AWS_ACCESS_KEY")));
             setAwsSecretKey(decryptKey(localStorage.getItem("AWS_SECRET_KEY")));
+            setAwsBedrockCustomURL(
+              localStorage.getItem("AWS_Bedrock_CustomURL")
+            );
             setSystemPrompt(localStorage.getItem("systemPrompt"));
 
             const savedQuestions =
@@ -292,6 +296,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     setAwsRegion(localStorage.getItem("AWS_REGION") || "us-east-1");
     setAwsAccessKey(decryptKey(localStorage.getItem("AWS_ACCESS_KEY")));
     setAwsSecretKey(decryptKey(localStorage.getItem("AWS_SECRET_KEY")));
+    setAwsBedrockCustomURL(localStorage.getItem("AWS_Bedrock_CustomURL"));
     setSystemPrompt(localStorage.getItem("systemPrompt") || "");
 
     const savedQuestions =
@@ -348,6 +353,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     localStorage.setItem("AWS_REGION", awsRegion);
     localStorage.setItem("AWS_ACCESS_KEY", encryptKey(awsAccessKey));
     localStorage.setItem("AWS_SECRET_KEY", encryptKey(awsSecretKey));
+    localStorage.setItem("AWS_Bedrock_CustomURL", awsBedrockCustomURL);
     alert("API Keys & AWS Bedrock settings saved successfully!");
   };
 
@@ -388,6 +394,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
     setAwsRegion("us-east-1");
     setAwsAccessKey("");
     setAwsSecretKey("");
+    setAwsBedrockCustomURL("");
     setQuestions(predefinedQuestions); // Reset to default questions
     setSystemPrompt("");
 
@@ -547,6 +554,17 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
               className="w-full bg-gray-700 p-2 rounded mb-2"
             />
 
+            <label className="block">
+              AWS Bedrock Custom DNS Name (Optional)
+            </label>
+            <input
+              type="text"
+              value={awsBedrockCustomURL}
+              onChange={(e) => setAwsBedrockCustomURL(e.target.value)}
+              placeholder="Example: vpce-102-ri.bedrock-runtime.us-east-1.vpce.amazonaws.com"
+              className="w-full bg-gray-700 p-2 rounded mb-2"
+            />
+
             <button
               onClick={handleSaveKeys}
               className="mt-4 bg-blue-600 hover:bg-blue-700 w-full py-2 rounded"
@@ -620,9 +638,11 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                 <div className="flex-grow flex justify-end space-x-2 mt-2">
                   <button
                     onClick={handleSaveSystemPrompt}
-                    disabled={systemPrompt?.trim() === "" || systemPrompt === null}
+                    disabled={
+                      systemPrompt?.trim() === "" || systemPrompt === null
+                    }
                     className={`p-1 rounded flex items-center justify-center text-white ${
-                      (systemPrompt?.trim() === "" || systemPrompt === null)
+                      systemPrompt?.trim() === "" || systemPrompt === null
                         ? "bg-gray-500 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
                     }`}
@@ -631,9 +651,11 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                   </button>
                   <button
                     onClick={handleClearSystemPrompt}
-                    disabled={systemPrompt?.trim() === "" || systemPrompt === null}
+                    disabled={
+                      systemPrompt?.trim() === "" || systemPrompt === null
+                    }
                     className={`p-1 rounded flex items-center justify-center text-white ${
-                      (systemPrompt?.trim() === ""  || systemPrompt === null)
+                      systemPrompt?.trim() === "" || systemPrompt === null
                         ? "bg-gray-500 cursor-not-allowed"
                         : "bg-red-600 hover:bg-red-700"
                     }`}
@@ -642,9 +664,11 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                   </button>
                   <button
                     onClick={handleCopy}
-                    disabled={systemPrompt?.trim() === ""  || systemPrompt === null}
+                    disabled={
+                      systemPrompt?.trim() === "" || systemPrompt === null
+                    }
                     className={`p-1 rounded flex items-center justify-center text-white ${
-                      (systemPrompt?.trim() === ""  || systemPrompt === null)
+                      systemPrompt?.trim() === "" || systemPrompt === null
                         ? "bg-gray-500 cursor-not-allowed"
                         : "bg-yellow-600 hover:bg-yellow-700"
                     }`}

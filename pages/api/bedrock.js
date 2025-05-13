@@ -31,6 +31,7 @@ export default async function handler(req, res) {
   let requestDetails;
   const aiDefenseMode = req.body.aiDefenseMode;
   const region = req.body.AWS_REGION;
+  const CustomURL = req.body.AWS_Bedrock_CustomURL;
   const accessKeyId = req.body.AWS_ACCESS_KEY;
   const secretAccessKey = req.body.AWS_SECRET_KEY;
   const sessionId = req.body.sessionId;
@@ -66,7 +67,10 @@ export default async function handler(req, res) {
     const gatewayUrl = req.body.gatewayUrl;
     const sendPromptVia = req.body.sendPromptVia;
 
-    const hostname = `bedrock-runtime.${region}.amazonaws.com`;
+    const hostname =
+      CustomURL && CustomURL.trim() !== ""
+        ? CustomURL
+        : `bedrock-runtime.${region}.amazonaws.com`;
     const path = `/model/${modelId}/converse`;
 
     // Retrieve chat history from memory storage (using sessionId)

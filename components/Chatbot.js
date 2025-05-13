@@ -479,6 +479,7 @@ const Chatbot = () => {
 
     const apiLLMKey = getAPIKey(selectedLLM);
     const AWS_REGION = localStorage.getItem("AWS_REGION");
+    const AWS_Bedrock_CustomURL = localStorage.getItem("AWS_Bedrock_CustomURL");
     const AWS_ACCESS_KEY = decryptKey(localStorage.getItem("AWS_ACCESS_KEY"));
     const AWS_SECRET_KEY = apiLLMKey;
     const SYSTEM_PROMPT = localStorage.getItem("systemPrompt");
@@ -741,6 +742,7 @@ const Chatbot = () => {
               modelId,
               userQuestion,
               AWS_REGION,
+              AWS_Bedrock_CustomURL,
               AWS_ACCESS_KEY,
               AWS_SECRET_KEY,
               aiDefenseMode,
@@ -756,6 +758,7 @@ const Chatbot = () => {
             modelId,
             userQuestion,
             AWS_REGION,
+            AWS_Bedrock_CustomURL,
             AWS_ACCESS_KEY,
             AWS_SECRET_KEY,
             aiDefenseMode,
@@ -1182,69 +1185,69 @@ const Chatbot = () => {
 
                     {/* AI Answer (Left-Aligned Dark Bubble) */}
                     {item.answer && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-none">
-                        <div className="prose prose-invert max-w-none leading-relaxed space-y-4">
-                          <ReactMarkdown
-                            components={{
-                              a: ({ node, href, children, ...props }) => (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 underline hover:text-blue-600"
-                                  {...props}
-                                >
-                                  {children}
-                                </a>
-                              ),
-                              code({
-                                node,
-                                inline,
-                                className,
-                                children,
-                                ...props
-                              }) {
-                                const match = /language-(\w+)/.exec(
-                                  className || ""
-                                );
-                                const codeString = String(children).replace(
-                                  /\n$/,
-                                  ""
-                                );
-                                return match ? (
-                                  <div className="relative group">
-                                    <CopyButton text={codeString} />
-                                    <SyntaxHighlighter
-                                      style={oneDark}
-                                      language={match[1]}
-                                      PreTag="div"
-                                      customStyle={{
-                                        padding: "12px", // Adds padding inside the code block
-                                        margin: "8px 0", // Adds space above & below the code block
-                                        borderRadius: "8px", // Rounds the corners
-                                        lineHeight: "1.6", // Increases line height for better spacing
-                                        fontSize: "14px", // Adjust font size for readability
-                                        overflowX: "auto", // Ensures horizontal scrolling if needed
-                                      }}
-                                      {...props}
-                                    >
-                                      {codeString}
-                                    </SyntaxHighlighter>
-                                  </div>
-                                ) : (
-                                  <code className="bg-gray-700 px-2 py-1 rounded text-sm">
+                      <div className="flex justify-start">
+                        <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-none">
+                          <div className="prose prose-invert max-w-none leading-relaxed space-y-4">
+                            <ReactMarkdown
+                              components={{
+                                a: ({ node, href, children, ...props }) => (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 underline hover:text-blue-600"
+                                    {...props}
+                                  >
                                     {children}
-                                  </code>
-                                );
-                              },
-                            }}
-                          >
-                            {item.answer}
-                          </ReactMarkdown>
+                                  </a>
+                                ),
+                                code({
+                                  node,
+                                  inline,
+                                  className,
+                                  children,
+                                  ...props
+                                }) {
+                                  const match = /language-(\w+)/.exec(
+                                    className || ""
+                                  );
+                                  const codeString = String(children).replace(
+                                    /\n$/,
+                                    ""
+                                  );
+                                  return match ? (
+                                    <div className="relative group">
+                                      <CopyButton text={codeString} />
+                                      <SyntaxHighlighter
+                                        style={oneDark}
+                                        language={match[1]}
+                                        PreTag="div"
+                                        customStyle={{
+                                          padding: "12px", // Adds padding inside the code block
+                                          margin: "8px 0", // Adds space above & below the code block
+                                          borderRadius: "8px", // Rounds the corners
+                                          lineHeight: "1.6", // Increases line height for better spacing
+                                          fontSize: "14px", // Adjust font size for readability
+                                          overflowX: "auto", // Ensures horizontal scrolling if needed
+                                        }}
+                                        {...props}
+                                      >
+                                        {codeString}
+                                      </SyntaxHighlighter>
+                                    </div>
+                                  ) : (
+                                    <code className="bg-gray-700 px-2 py-1 rounded text-sm">
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                              }}
+                            >
+                              {item.answer}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     )}
 
                     {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
@@ -1265,13 +1268,13 @@ const Chatbot = () => {
               {/* ✅ AI Thinking Message (Only Shows When Loading) */}
               {loading && (
                 <>
-                {promptAlert === false && (
-                  <div className="flex justify-end">
-                    <div className="bg-blue-500 text-white rounded-lg px-4 py-2 max-w-[75%]">
-                      <p className="text-sm">{newQuestion}</p>
+                  {promptAlert === false && (
+                    <div className="flex justify-end">
+                      <div className="bg-blue-500 text-white rounded-lg px-4 py-2 max-w-[75%]">
+                        <p className="text-sm">{newQuestion}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                   <div className="flex justify-start items-center">
                     <div className="bg-gray-800 text-gray-400 rounded-lg px-4 py-2 max-w-[75%] flex items-center">
                       <div className="animate-spin mr-2">
