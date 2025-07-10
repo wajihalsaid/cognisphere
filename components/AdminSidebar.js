@@ -267,6 +267,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
           enabledRules: [],
           apiServer,
           aiDefenseMode,
+          extractedText: "",
         });
       } catch (error) {
         alert("API Key is invalid. Please verify");
