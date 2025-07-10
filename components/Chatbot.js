@@ -546,6 +546,7 @@ const Chatbot = () => {
                 enabledRules: parseEnabledRules(enabledRules),
                 apiServer,
                 aiDefenseMode,
+                extractedText,
               })
             : [];
 
@@ -861,6 +862,7 @@ const Chatbot = () => {
                 enabledRules: parseEnabledRules(enabledRules),
                 apiServer,
                 aiDefenseMode,
+                extractedText,
               })
             : [];
 

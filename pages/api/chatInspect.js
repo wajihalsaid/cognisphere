@@ -6,12 +6,18 @@ export default async function handler(req, res) {
   }
   const apiKey = req.body.apiKey;
   const promptRole = req.body.promptRole;
-  const promptContent = req.body.userQuestion;
+  //const promptContent = req.body.userQuestion;
   const responseRole = req.body.responseRole;
   const responseContent = req.body.answer;
   const enabledRules = req.body.enabledRules;
   const apiServer = req.body.apiServer;
   const aiDefenseMode = req.body.aiDefenseMode;
+  const extractedText = req.body.extractedText;
+  const promptContent =
+    extractedText.trim() === ""
+      ? req.body.userQuestion
+      : `Based on this document: "${extractedText}", answer: ${req.body.userQuestion}`;
+
   const maskAPIKey = (apiKey) => {
     // Mask the API key in logs
     return apiKey
