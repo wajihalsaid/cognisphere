@@ -561,7 +561,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
             <input
               type="text"
               value={awsBedrockCustomURL}
-              onChange={(e) => setAwsBedrockCustomURL(e.target.value)}
+              onChange={(e) => setAwsBedrockCustomURL(e.target.value ?? "")}
               placeholder="Example: vpce-102-ri.bedrock-runtime.us-east-1.vpce.amazonaws.com"
               className="w-full bg-gray-700 p-2 rounded mb-2"
             />
