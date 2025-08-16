@@ -6,7 +6,11 @@
  
 ## Installation
 
-### **Ubuntu Server**
+> **Note:** Choose the instructions based on your operating system.
+
+---
+
+### 🐧 Ubuntu Server / Linux
 
 You will need Node.js 18.9+ and npm installed on your local development machine:
 
@@ -87,7 +91,7 @@ you can use the same command to run it again
 
 
 
-### **macOS 15**
+### **macOS 15.x**
 
 Install Node.js and npm using macOS Terminal
 ```shell
