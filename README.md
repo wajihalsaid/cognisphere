@@ -118,7 +118,9 @@ Run the app temporarily
 ```shell
 npm start
 ```
-
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ctrl+C to stop
+you can use the same command to run it again
 
 
 ## Keep your sevrer running latest version (on-demand):
