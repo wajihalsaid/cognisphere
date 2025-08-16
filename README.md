@@ -131,7 +131,9 @@ you can use the same command to run it again
 
 ## Keep your sevrer running latest version (on-demand):
 
-### **Ubuntu Server**
+---
+
+### 🐧 Ubuntu Server / Linux
 
 [optional] Create an on-demand script that it will make your project to get latest updates
 
@@ -170,8 +172,9 @@ Whenever you want to run the update, execute the below command:
 sudo bash /var/www/cognisphere/.git/hooks/post-receive 
 ```
 
+---
 
-### **Windows 11**
+### ![Windows](https://upload.wikimedia.org/wikipedia/commons/5/5f/Windows_logo_-_2012.svg) Windows 11 (PowerShell)
 
 [optional] Get latest update, build and run temporarily:
 ```shell
@@ -182,7 +185,9 @@ npm run build
 ```
 
 
-### **macOS 15**
+---
+
+### ![macOS](https://upload.wikimedia.org/wikipedia/commons/3/30/MacOS_logo.svg) macOS
 
 [optional] Get latest update, build and run temporarily:
 ```shell
