@@ -6,6 +6,8 @@
  
 ## Installation
 
+### **Ubuntu Server**
+
 You will need Node.js 18.9+ and npm installed on your local development machine:
 
 ```shell
@@ -47,7 +49,81 @@ sudo pm2 startup
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 
+### **Windows 11**
+
+Install Node.js & Git on Windows 11. Open PowerShell as Administrator and run:
+```shell
+winget install OpenJS.NodeJS.LTS
+winget install Git.Git
+```
+
+Create your project folder and clone the repo
+```shell
+mkdir C:\Projects\cognisphere
+cd C:\Projects\cognisphere
+git init
+git remote add origin https://github.com/wajihalsaid/cognisphere.git
+git pull --rebase origin main
+```
+
+Install dependencies
+```shell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+npm install
+```
+
+Build the app
+```shell
+npm run build
+```
+
+Run temporarily
+```shell
+npm start
+```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ctrl+C to stop
+you can use the same command to run it again
+
+
+
+### **macOS 15**
+
+Install Node.js and npm using macOS Terminal
+```shell
+brew install node
+```
+
+Create project folder and download code
+```shell
+mkdir -p ~/Projects/cognisphere
+cd ~/Projects/cognisphere
+git config --global init.defaultBranch main
+git init
+git remote add origin https://github.com/wajihalsaid/cognisphere.git
+git pull --rebase origin main
+```
+
+Install dependencies
+```shell
+npm install
+```
+
+Build the app
+```shell
+npm run build
+```
+
+Run the app temporarily
+```shell
+npm start
+```
+
+
+
 ## Keep your sevrer running latest version (on-demand):
+
+### **Ubuntu Server**
 
 [optional] Create an on-demand script that it will make your project to get latest updates
 
@@ -84,4 +160,26 @@ Whenever you want to run the update, execute the below command:
 
 ```shell
 sudo bash /var/www/cognisphere/.git/hooks/post-receive 
+```
+
+
+### **Windows 11**
+
+[optional] Get latest update, build and run temporarily:
+```shell
+cd C:\Projects\cognisphere
+git pull origin main
+npm install
+npm run build
+```
+
+
+### **macOS 15**
+
+[optional] Get latest update, build and run temporarily:
+```shell
+cd ~/Projects/cognisphere
+git pull origin main
+npm install
+npm start
 ```
