@@ -52,8 +52,9 @@ sudo pm2 startup
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+---
 
-### **Windows 11**
+### ![Windows](https://upload.wikimedia.org/wikipedia/commons/5/5f/Windows_logo_-_2012.svg) Windows 11 (PowerShell)
 
 Install Node.js & Git on Windows 11. Open PowerShell as Administrator and run:
 ```shell
@@ -90,8 +91,9 @@ Ctrl+C to stop
 you can use the same command to run it again
 
 
+---
 
-### **macOS 15.x**
+### ![macOS](https://upload.wikimedia.org/wikipedia/commons/3/30/MacOS_logo.svg) macOS
 
 Install Node.js and npm using macOS Terminal
 ```shell
