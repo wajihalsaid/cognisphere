@@ -146,9 +146,11 @@ BRANCH="main"  # Change to the branch you are pulling from
 cd \$APP_DIR || exit
 
 echo "🚀 Pulling latest changes from Git..."
+git checkout -- .
 git pull origin \$BRANCH
 
 echo "📦 Installing dependencies..."
+npm install --package-lock-only
 npm install
 
 echo "🔨 Building the Next.js app..."
@@ -179,9 +181,12 @@ sudo bash /var/www/cognisphere/.git/hooks/post-receive
 [optional] Get latest update, build and run temporarily:
 ```shell
 cd C:\Projects\cognisphere
+git restore .
 git pull origin main
+npm install --package-lock-only
 npm install
 npm run build
+npm start
 ```
 
 
@@ -192,7 +197,9 @@ npm run build
 [optional] Get latest update, build and run temporarily:
 ```shell
 cd ~/Projects/cognisphere
+git checkout -- .
 git pull origin main
+npm install --package-lock-only
 npm install
 npm start
 ```
