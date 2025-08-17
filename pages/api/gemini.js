@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     requestDetails = {
       via: aiDefenseMode,
       method: "POST",
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${maskAPIKey(
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${llm}:generateContent?key=${maskAPIKey(
         apiKey
       )}`,
       headers: {
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
     };
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${llm}:generateContent?key=${apiKey}`,
       requestPayload,
       {
         headers: {
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       response?.data?.response?.candidates?.[0]?.content?.parts?.[0]?.text ??
       "No response received.";
 
-    conversation.push({ role: "assistant", content: aiResponse });
+    conversation.push({ role: "model", content: aiResponse });
 
     // Save chat history in memory
     conversationMemoryGemini[sessionId] = conversation;

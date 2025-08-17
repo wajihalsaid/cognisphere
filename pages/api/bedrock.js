@@ -72,6 +72,7 @@ export default async function handler(req, res) {
         ? CustomURL
         : `bedrock-runtime.${region}.amazonaws.com`;
     const path = `/model/${modelId}/converse`;
+  
 
     // Retrieve chat history from memory storage (using sessionId)
     if (!conversationMemoryBedrock[sessionId]) {

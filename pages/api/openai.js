@@ -25,12 +25,11 @@ export default async function handler(req, res) {
   let apiUrl =
     llm.startsWith("gpt") || llm === "o3-mini"
       ? "https://api.openai.com/v1/chat/completions"
-      : llm.startsWith("llama") || llm.startsWith("deepseek")
+      : llm.startsWith("llama") || llm.startsWith("deepseek") || llm.startsWith("meta-llama")
       ? "https://api.groq.com/openai/v1/chat/completions"
       : llm === "Gemini"
       ? "https://api.gemini.com/v1"
       : ""; // Default to an empty string if none match (to avoid undefined)
-
   // Change the URL if the mode is "gateway"
   if (aiDefenseMode === "gateway" && gatewayUrl) {
     apiUrl = gatewayUrl + "/v1/chat/completions"; // Set the custom gateway URL
@@ -81,6 +80,7 @@ export default async function handler(req, res) {
       extractedText.trim() === ""
         ? question
         : `Based on this document: "${extractedText}", answer: ${question}`,
+          //`Context:${extractedText}\n\n Question: "${question}"`,
   });
 
   try {
@@ -88,7 +88,11 @@ export default async function handler(req, res) {
       model: llm,
       ...(llm === "o3-mini" && { reasoning_effort: "medium" }),
       messages: [...conversation],
-      ...(llm !== "o3-mini" && { max_tokens: 1000 }),
+      ...(llm.startsWith("gpt-5")
+        ? { max_completion_tokens: 1000 }
+        : llm !== "o3-mini"
+        ? { max_tokens: 1000 }
+        : {}),
     };
 
     const config = {
@@ -125,13 +129,11 @@ export default async function handler(req, res) {
     // Save chat history in memory
     conversationMemoryOpenAI[sessionId] = conversation;
 
-    res
-      .status(200)
-      .json({
-        response: response.data,
-        logs: requestDetails,
-        sessionId: userSessionId,
-      });
+    res.status(200).json({
+      response: response.data,
+      logs: requestDetails,
+      sessionId: userSessionId,
+    });
   } catch (error) {
     console.error("OpenAI API Error:", error); // Log full error for debugging
     const errorMessage =

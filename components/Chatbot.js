@@ -21,9 +21,16 @@ import AdminSidebar from "./AdminSidebar";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import mammoth from "mammoth";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeRaw from "rehype-raw";
+import rehypeExternalLinks from "rehype-external-links";
 
 let sessionId;
 
@@ -448,9 +455,13 @@ const Chatbot = () => {
     let encryptedKey = null;
     if (llm.startsWith("gpt-") || llm === "o3-mini") {
       encryptedKey = localStorage.getItem("OPENAI_API_KEY");
-    } else if (llm.startsWith("llama-") || llm.startsWith("deepseek-")) {
+    } else if (
+      llm.startsWith("llama-") ||
+      llm.startsWith("deepseek-") ||
+      llm.startsWith("meta-llama")
+    ) {
       encryptedKey = localStorage.getItem("META_LLM_API_KEY");
-    } else if (llm === "Gemini") {
+    } else if (llm.startsWith("gemini")) {
       encryptedKey = localStorage.getItem("GEMINI_API_KEY");
     } else if (llm.startsWith("bedrock")) {
       encryptedKey = localStorage.getItem("AWS_SECRET_KEY");
@@ -496,9 +507,10 @@ const Chatbot = () => {
 
     if (
       aiDefenseMode === "gateway" &&
-      (selectedLLM == "Gemini" ||
+      (selectedLLM.startsWith("gemini") ||
         selectedLLM.startsWith("llama-") ||
-        selectedLLM.startsWith("deepseek-"))
+        selectedLLM.startsWith("deepseek-") ||
+        selectedLLM.startsWith("meta-llama"))
     ) {
       alert(
         selectedLLM +
@@ -558,6 +570,7 @@ const Chatbot = () => {
         if (violations !== null) {
           //console.log ("violations: ", violations || null);
           const aiDefenseMessage = generateAlertMessage(violations).message;
+          //console.log ("aiDefenseMessage: ", aiDefenseMessage || null);
           const aiDefenseAction = generateAlertMessage(violations).type;
           aiDefenseTriggerAction = aiDefenseAction;
           aiDefenseTriggerMessage = aiDefenseMessage;
@@ -630,15 +643,18 @@ const Chatbot = () => {
           setPromptAlert(true);
         }
       }
-
       if (
         [
+          "gpt-5",
+          "gpt-5-mini",
+          "gpt-5-2025-08-07",
           "gpt-4o",
           "gpt-4.5-preview",
           "gpt-4.1",
           "o3-mini",
           "gpt-4",
           "llama-3.3-70b-versatile",
+          "meta-llama/llama-4-maverick-17b-128e-instruct",
           "deepseek-r1-distill-llama-70b",
         ].includes(selectedLLM)
       ) {
@@ -686,10 +702,11 @@ const Chatbot = () => {
           response?.response?.data?.choices?.[0]?.message?.content ??
           response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ??
           "No response received.";
-      } else if (selectedLLM === "Gemini") {
+      } else if (selectedLLM.startsWith("gemini")) {
         if (aiDefenseMode === "browser") {
           response = await getGeminiResponse(
             userQuestion,
+            selectedLLM,
             apiLLMKey,
             extractedText
           );
@@ -718,6 +735,7 @@ const Chatbot = () => {
         } else {
           response = await getGeminiResponse(
             userQuestion,
+            selectedLLM,
             apiLLMKey,
             extractedText
           );
@@ -987,9 +1005,18 @@ const Chatbot = () => {
       ]);
       //alert("Failed to fetch the answer. Please try again.");
       let answer =
-        aiDefenseMode === "gateway" &&
-        (error.message === "Request failed with status code 404" ||
-          error.message === "NetworkError when attempting to fetch resource.")
+        aiDefenseMode === "egress" &&
+        (error.message === "Request failed with status code 403" ||
+          error?.response?.data?.error?.message ===
+            "Request failed with status code 403")
+          ? "Blocked by Server Egress Gateway (MCD)"
+          : aiDefenseMode === "gateway" &&
+            (error.message === "Request failed with status code 404" ||
+              error.message ===
+                "NetworkError when attempting to fetch resource." ||
+              error.message === "Request failed with status code 400" ||
+              error?.response?.data?.error?.message ===
+                "Request failed with status code 400")
           ? "Please make sure you are using the righ AI Defense Gateway endpoint URL"
           : "No response";
 
@@ -1188,16 +1215,42 @@ const Chatbot = () => {
                     {/* AI Answer (Left-Aligned Dark Bubble) */}
                     {item.answer && (
                       <div className="flex justify-start">
-                        <div className="bg-gray-800 text-white rounded-lg px-4 py-3 max-w-none">
+                        <div className="bg-gradient-to-br bg-gray-800 text-white rounded-2xl px-5 py-4 shadow-xl max-w-none">
                           <div className="prose prose-invert max-w-none leading-relaxed space-y-4">
                             <ReactMarkdown
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
+                              rehypePlugins={[
+                                rehypeRaw,
+                                [
+                                  rehypeExternalLinks,
+                                  {
+                                    target: "_blank",
+                                    rel: ["noopener", "noreferrer"],
+                                  },
+                                ],
+                              ]}
                               components={{
+                                h1: ({ children }) => (
+                                  <h1 className="text-2xl font-bold text-indigo-300 border-b border-indigo-600 pb-2">
+                                    {children}
+                                  </h1>
+                                ),
+                                h2: ({ children }) => (
+                                  <h2 className="text-xl font-semibold text-purple-300 mt-4">
+                                    {children}
+                                  </h2>
+                                ),
+                                h3: ({ children }) => (
+                                  <h3 className="text-lg font-semibold text-pink-300 mt-3">
+                                    {children}
+                                  </h3>
+                                ),
                                 a: ({ node, href, children, ...props }) => (
                                   <a
                                     href={href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-400 underline hover:text-blue-600"
+                                    className="text-cyan-300 underline hover:text-pink-400 transition-colors"
                                     {...props}
                                   >
                                     {children}
@@ -1217,20 +1270,24 @@ const Chatbot = () => {
                                     /\n$/,
                                     ""
                                   );
-                                  return match ? (
+
+                                  return !inline && match ? (
                                     <div className="relative group">
                                       <CopyButton text={codeString} />
                                       <SyntaxHighlighter
-                                        style={oneDark}
+                                        style={oneLight} // ✅ switch to a light theme
                                         language={match[1]}
                                         PreTag="div"
                                         customStyle={{
-                                          padding: "12px", // Adds padding inside the code block
-                                          margin: "8px 0", // Adds space above & below the code block
-                                          borderRadius: "8px", // Rounds the corners
-                                          lineHeight: "1.6", // Increases line height for better spacing
-                                          fontSize: "14px", // Adjust font size for readability
-                                          overflowX: "auto", // Ensures horizontal scrolling if needed
+                                          padding: "14px",
+                                          margin: "10px 0",
+                                          borderRadius: "10px",
+                                          lineHeight: "1.6",
+                                          fontSize: "14px",
+                                          overflowX: "auto",
+                                          border: "1px solid rgba(0,0,0,0.15)", // ✅ subtle border
+                                          background: "white", // ✅ force white background
+                                          color: "#1e293b", // ✅ dark text for readability
                                         }}
                                         {...props}
                                       >
@@ -1238,11 +1295,33 @@ const Chatbot = () => {
                                       </SyntaxHighlighter>
                                     </div>
                                   ) : (
-                                    <code className="bg-gray-700 px-2 py-1 rounded text-sm">
+                                    <code className="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded text-sm font-mono">
                                       {children}
                                     </code>
                                   );
                                 },
+                                table: ({ children }) => (
+                                  <div className="overflow-x-auto my-2">
+                                    <table className="table-auto border border-indigo-600/40 text-sm rounded-lg overflow-hidden">
+                                      {children}
+                                    </table>
+                                  </div>
+                                ),
+                                th: ({ children }) => (
+                                  <th className="border border-indigo-600/40 px-3 py-2 bg-indigo-800 text-indigo-200 font-semibold">
+                                    {children}
+                                  </th>
+                                ),
+                                td: ({ children }) => (
+                                  <td className="border border-indigo-600/30 px-3 py-2 odd:bg-gray-800/30 even:bg-gray-700/30">
+                                    {children}
+                                  </td>
+                                ),
+                                li: ({ children }) => (
+                                  <li className="marker:text-pink-400">
+                                    {children}
+                                  </li>
+                                ),
                               }}
                             >
                               {item.answer}
@@ -1393,16 +1472,22 @@ const Chatbot = () => {
             value={selectedLLM}
             className="w-90 p-2 bg-gray-700 rounded-lg text-white focus:outline-none"
           >
+            <option value="gpt-5">OpenAI GPT-5</option>
+            <option value="gpt-5-mini">OpenAI GPT-5-mini</option>
+            <option value="gpt-5-2025-08-07">OpenAI GPT-5-nano</option>
             <option value="gpt-4.1">OpenAI GPT-4.1</option>
-            <option value="gpt-4.5-preview">OpenAI GPT-4.5</option>
             <option value="o3-mini">OpenAI o3-mini</option>
             <option value="gpt-4o">OpenAI GPT-4o</option>
             <option value="gpt-4">OpenAI GPT-4</option>
             <option value="llama-3.3-70b-versatile">
               llama-3.3-70b-versatile
             </option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">
+              llama-4-maverick-17b-128e-instruct
+            </option>
             <option value="deepseek-r1-distill-llama-70b">deepseek-r1</option>
-            <option value="Gemini">gemini-2.0-flash</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
             <option value="bedrock - anthropic.claude-3-5-sonnet-20240620-v1:0">
               Bedrock - anthropic.claude-3-5-sonnet-20240620-v1:0
             </option>
@@ -1420,15 +1505,6 @@ const Chatbot = () => {
             </option>
             <option value="bedrock - amazon.nova-pro-v1:0">
               Bedrock - amazon.nova-pro-v1:0
-            </option>
-            <option value="bedrock - amazon.titan-text-premier-v1:0">
-              Bedrock - amazon.titan-text-premier-v1:0
-            </option>
-            <option value="bedrock - amazon.titan-text-express-v1">
-              Bedrock - amazon.titan-text-express-v1
-            </option>
-            <option value="bedrock - amazon.titan-text-lite-v1">
-              Bedrock - amazon.titan-text-lite-v1
             </option>
             <option value="bedrock - meta.llama3-3-70b-instruct-v1:0">
               Bedrock - meta.llama3-3-70b-instruct-v1:0
