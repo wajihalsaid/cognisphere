@@ -201,5 +201,6 @@ git checkout -- .
 git pull origin main
 npm install --package-lock-only
 npm install
+npm run build
 npm start
 ```
