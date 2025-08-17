@@ -1005,7 +1005,7 @@ const Chatbot = () => {
       ]);
       //alert("Failed to fetch the answer. Please try again.");
       let answer =
-        aiDefenseMode === "egress" &&
+        (aiDefenseMode === "egress" || (aiDefenseMode === "api" && sendPromptVia === "Server Gateway")) &&
         (error.message === "Request failed with status code 403" ||
           error?.response?.data?.error?.message ===
             "Request failed with status code 403")
