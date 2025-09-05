@@ -89,7 +89,7 @@ export default async function handler(req, res) {
       ...(llm === "o3-mini" && { reasoning_effort: "medium" }),
       messages: [...conversation],
       ...(llm.startsWith("gpt-5")
-        ? { max_completion_tokens: 1000 }
+        ? { max_completion_tokens: 10000 }
         : llm !== "o3-mini"
         ? { max_tokens: 1000 }
         : {}),
