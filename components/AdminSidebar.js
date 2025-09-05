@@ -52,6 +52,54 @@ const awsRegions = [
   "us-gov-west-1", // AWS GovCloud (US-West)
 ];
 
+  const parseEnabledRules = (rules) => {
+    if (!rules) return null;
+    try {
+      const arrayRules = Object.entries(rules)
+        .filter(([_, value]) => value.enabled) // Filter enabled rules
+        .map(([key]) => ({ rule_name: key })); // Map to required format
+      const modifiedRules = arrayRules.map((rule) => {
+        if (rule.rule_name === "PCI") {
+          return {
+            ...rule,
+            entity_types: [
+              "Individual Taxpayer Identification Number (ITIN) (US)",
+              "International Bank Account Number (IBAN)",
+              "American Bankers Association (ABA) Routing Number (US)",
+              "Credit Card Number",
+              "Bank Account Number (US)",
+            ],
+          };
+        } else if (rule.rule_name === "PII") {
+          return {
+            ...rule,
+            entity_types: [
+              "Email Address",
+              "IP Address",
+              "Phone Number",
+              "Driver's License Number (US)",
+              "Passport Number (US)",
+              "Social Security Number (SSN) (US)",
+            ],
+          };
+        } else if (rule.rule_name === "PHI") {
+          return {
+            ...rule,
+            entity_types: [
+              "Medical License Number (US)",
+              "National Health Service (NHS) Number",
+            ],
+          };
+        }
+        return rule;
+      });
+      return modifiedRules;
+    } catch (error) {
+      console.error("Error parsing enabledRules:", error);
+      return null;
+    }
+  };
+
 const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
   const [openAIKey, setOpenAIKey] = useState("");
   const [groqKey, setgroqKey] = useState("");
@@ -264,13 +312,19 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
           userQuestion: "check API Authentication",
           answer: "checked",
           apiKey: apiKey,
-          enabledRules: [],
+          enabledRules: parseEnabledRules(enabledRules),
           apiServer,
           aiDefenseMode,
           extractedText: "",
         });
       } catch (error) {
-        alert("API Key is invalid. Please verify");
+    if (error.message === "Request failed with status code 400") {
+      alert("This connection already has policy configured on AI Defense Dashboard. Please disable the existing Enabled Rules in Settings or use an API key associated with a connection that has no rules configured.");
+    } else if (error.message === "Request failed with status code 401") {
+      alert("API Key is invalid. Please verify");
+    } else {
+      alert("An unexpected error occurred: " + error.message);
+    }
         return;
       } finally {
         setIsSaving(false); // Stop loading

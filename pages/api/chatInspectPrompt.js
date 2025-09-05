@@ -72,7 +72,9 @@ export default async function handler(req, res) {
   } catch (error) {
     //console.error("AI Defense API Error:", error); // Log full error for debugging
     const errorMessage =
-      error.status === 401
+           error.status === 400
+    ? "This connection already has policy configured on AI Defense Dashboard. Please disable the existing Enabled Rules in Settings or use an API key associated with a connection that has no rules configured."
+    : error.status === 401
         ? "API Inspect Request Failed due to: Unauthorized (Invalid API Key)"
         : "API Inspect Request Failed due to: " +
           (error.code ||
