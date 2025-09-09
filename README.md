@@ -139,6 +139,9 @@ If you just want to run Cognisphere without installing Node.js, npm, or cloning 
 docker pull walsaid/cognisphere:latest
 docker run -p 3000:3000 walsaid/cognisphere:latest
 ```
+Open [http://localhost:3000](http://localhost:3000) with your browser.
+The app runs inside the Docker container. Stop it with Ctrl+C or by removing the container.
+You can run it again anytime with the same docker run command.
 
 ## Keep your sevrer running latest version (on-demand):
 
