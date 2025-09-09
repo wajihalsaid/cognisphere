@@ -129,6 +129,16 @@ Ctrl+C to stop.
 you can use the same command to run it again.
 
 
+---
+
+### ![Docker](https://commons.wikimedia.org/wiki/File:Docker_(container_engine)_logo.png) Pull & Use Anywhere (Docker)
+
+If you just want to run Cognisphere without installing Node.js, npm, or cloning the repo, you can use Docker::
+```shell
+docker pull walsaid/cognisphere:latest
+docker run -p 3000:3000 walsaid/cognisphere:latest
+```
+
 ## Keep your sevrer running latest version (on-demand):
 
 ---
