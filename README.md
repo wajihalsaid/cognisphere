@@ -131,7 +131,7 @@ you can use the same command to run it again.
 
 ---
 
-### ![Docker](https://commons.wikimedia.org/wiki/File:Docker_(container_engine)_logo.png) Pull & Use Anywhere (Docker)
+### ![Docker](https://upload.wikimedia.org/wikipedia/commons/4/4e/Docker_%28container_engine%29_logo.svg) Pull & Use Anywhere (Docker)
 
 If you just want to run Cognisphere without installing Node.js, npm, or cloning the repo, you can use Docker::
 ```shell
