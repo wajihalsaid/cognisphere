@@ -20,7 +20,7 @@
     "@tailwindcss/postcss": "^4.0.14",
     "@types/pdfjs-dist": "^2.10.377",
     "@ungap/with-resolvers": "^0.1.0",
-    "axios": "^1.11.0",
+    "axios": "^1.12.2",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
     "fs": "^0.0.1-security",
