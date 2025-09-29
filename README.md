@@ -143,7 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 The app runs inside the Docker container. Stop it with Ctrl+C or by removing the container.
 You can run it again anytime with the same docker run command.
 
-For K8s, Openshift, EKA, AKS, and GKE. Here is sample of yaml file
+For K8s, Openshift, EKS, AKS, and GKE. Here is sample of yaml file
 ```shell
 ---
 apiVersion: apps/v1
