@@ -17,6 +17,7 @@ export default async function handler(req, res) {
   const aiDefenseMode = req.body.aiDefenseMode;
   const sessionId = req.body.sessionId;
   const extractedText = req.body.extractedText;
+  const ollamaModelsUrl = req.body.ollamaModelsUrl;
 
   // Generate a session ID if it's missing
   const userSessionId = sessionId || uuidv4();
@@ -25,10 +26,12 @@ export default async function handler(req, res) {
   let apiUrl =
     llm.startsWith("gpt") || llm === "o3-mini"
       ? "https://api.openai.com/v1/chat/completions"
-      : llm.startsWith("llama") || llm.startsWith("deepseek") || llm.startsWith("meta-llama")
+      : llm.startsWith("llama") ||
+        llm.startsWith("deepseek") ||
+        llm.startsWith("meta-llama")
       ? "https://api.groq.com/openai/v1/chat/completions"
-      : llm === "Gemini"
-      ? "https://api.gemini.com/v1"
+      : llm.startsWith("ollama")
+      ? ollamaModelsUrl + "/api/chat"
       : ""; // Default to an empty string if none match (to avoid undefined)
   // Change the URL if the mode is "gateway"
   if (aiDefenseMode === "gateway" && gatewayUrl) {
@@ -80,16 +83,20 @@ export default async function handler(req, res) {
       extractedText.trim() === ""
         ? question
         : `Based on this document: "${extractedText}", answer: ${question}`,
-          //`Context:${extractedText}\n\n Question: "${question}"`,
+    //`Context:${extractedText}\n\n Question: "${question}"`,
   });
 
   try {
     const requestPayload = {
-      model: llm,
+      model: llm.startsWith("ollama-") ? llm.replace("ollama-", "") : llm,
       ...(llm === "o3-mini" && { reasoning_effort: "medium" }),
       messages: [...conversation],
       ...(llm.startsWith("gpt-5")
         ? { max_completion_tokens: 10000 }
+        : llm.startsWith("deepseek")
+        ? { max_tokens: 4000 }
+        : llm.startsWith("ollama")
+        ? { stream: false }
         : llm !== "o3-mini"
         ? { max_tokens: 1000 }
         : {}),
@@ -97,7 +104,9 @@ export default async function handler(req, res) {
 
     const config = {
       headers: {
-        Authorization: `Bearer ${maskAPIKey(apiKey)}`,
+        ...(llm.startsWith("ollama")
+          ? {}
+          : { Authorization: `Bearer ${maskAPIKey(apiKey)}` }),
         "Content-Type": "application/json",
       },
     };
@@ -113,10 +122,13 @@ export default async function handler(req, res) {
 
     const response = await axios.post(apiUrl, requestPayload, {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        ...(llm.startsWith("ollama")
+          ? {}
+          : { Authorization: `Bearer ${apiKey}` }),
         "Content-Type": "application/json",
       },
     });
+    //console.log("response:", response);
 
     // Append AI response to chat history
     const aiResponse =
@@ -135,7 +147,7 @@ export default async function handler(req, res) {
       sessionId: userSessionId,
     });
   } catch (error) {
-    console.error("OpenAI API Error:", error); // Log full error for debugging
+    //console.error("OpenAI API Error:", JSON.stringify(error)); // Log full error for debugging
     const errorMessage =
       error?.response?.data?.error?.message ||
       error.message ||

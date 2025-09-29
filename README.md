@@ -143,6 +143,45 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 The app runs inside the Docker container. Stop it with Ctrl+C or by removing the container.
 You can run it again anytime with the same docker run command.
 
+For K8s, Openshift, EKA, AKS, and GKE. Here is sample of yaml file
+```shell
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cognisphere
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cognisphere
+  template:
+    metadata:
+      labels:
+        app: cognisphere
+    spec:
+      containers:
+        - name: cognisphere
+          image: walsaid/cognisphere:latest
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cognisphere-service
+spec:
+  selector:
+    app: cognisphere
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+---
+```
+
+
 ## Keep your sevrer running latest version (on-demand):
 
 ---
