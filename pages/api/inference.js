@@ -151,26 +151,30 @@ export default async function handler(req, res) {
         response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ??
         response?.response?.message?.content ??
         "No response received.";
-      if (req.headers["ai-defense-mode"] === "api") {
-        const apiInspectResult = await callChatInspect({
-          apiKey: aiDefenseKey,
-          promptRole: "user",
-          userQuestion: userQuestion,
-          responseRole: "assistant",
-          answer: answer,
-          enabledRules: [],
-          apiServer: apiServer,
-          aiDefenseMode: aiDefenseMode,
-          extractedText: "",
-        });
-        if (!apiInspectResult.response.is_safe) {
-          response = await runInference(
-            "AI Defense [Response]: ",
-            `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
-          );
+      try {
+        if (req.headers["ai-defense-mode"] === "api") {
+          const apiInspectResult = await callChatInspect({
+            apiKey: aiDefenseKey,
+            promptRole: "user",
+            userQuestion: userQuestion,
+            responseRole: "assistant",
+            answer: answer,
+            enabledRules: [],
+            apiServer: apiServer,
+            aiDefenseMode: aiDefenseMode,
+            extractedText: "",
+          });
+          if (!apiInspectResult.response.is_safe) {
+            response = await runInference(
+              "AI Defense [Response]: ",
+              `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
+            );
 
-          return res.status(200).json(response);
+            return res.status(200).json(response);
+          }
         }
+      } catch (err) {
+        console.log(err);
       }
     } else if (selectedLLM.startsWith("gemini")) {
       if (!req.headers["ai-defense-mode"]) {
@@ -238,26 +242,29 @@ export default async function handler(req, res) {
         response?.response?.data?.candidates?.[0]?.content.parts[0].text ??
         response?.data?.response?.candidates?.[0]?.content.parts[0].text;
       ("No response received.");
-      if (req.headers["ai-defense-mode"] === "api") {
-        const apiInspectResult = await callChatInspect({
-          apiKey: aiDefenseKey,
-          promptRole: "user",
-          userQuestion: userQuestion,
-          responseRole: "assistant",
-          answer: answer,
-          enabledRules: [],
-          apiServer: apiServer,
-          aiDefenseMode: aiDefenseMode,
-          extractedText: "",
-        });
-        if (!apiInspectResult.response.is_safe) {
-          response = await runInference(
-            "AI Defense [Response]: ",
-            `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
-          );
-
-          return res.status(200).json(response);
+      try {
+        if (req.headers["ai-defense-mode"] === "api") {
+          const apiInspectResult = await callChatInspect({
+            apiKey: aiDefenseKey,
+            promptRole: "user",
+            userQuestion: userQuestion,
+            responseRole: "assistant",
+            answer: answer,
+            enabledRules: [],
+            apiServer: apiServer,
+            aiDefenseMode: aiDefenseMode,
+            extractedText: "",
+          });
+          if (!apiInspectResult.response.is_safe) {
+            response = await runInference(
+              "AI Defense [Response]: ",
+              `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
+            );
+            return res.status(200).json(response);
+          }
         }
+      } catch (err) {
+        console.log(err);
       }
     } else if (selectedLLM.startsWith("bedrock")) {
       let modelId = selectedLLM.replace("bedrock - ", "");
@@ -277,29 +284,32 @@ export default async function handler(req, res) {
         } else {
           apiServer = regionMap[aiDefenseRegion] || regionMap["us"];
         }
+        try {
+          if (!req.headers["ai-defense-key"]) {
+            return res.status(405).json({
+              error: "'ai-defense-key' header is missing from HTTP request",
+            });
+          }
 
-        if (!req.headers["ai-defense-key"]) {
-          return res.status(405).json({
-            error: "'ai-defense-key' header is missing from HTTP request",
+          const apiPromptInspectResult = await callChatInspectPrompt({
+            apiKey: aiDefenseKey,
+            promptRole: "user",
+            userQuestion: userQuestion,
+            enabledRules: [],
+            apiServer: apiServer,
+            aiDefenseMode: aiDefenseMode,
+            extractedText: "",
           });
-        }
+          if (!apiPromptInspectResult.response.is_safe) {
+            response = await runInference(
+              "AI Defense [Prompt]: ",
+              `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
+            );
 
-        const apiPromptInspectResult = await callChatInspectPrompt({
-          apiKey: aiDefenseKey,
-          promptRole: "user",
-          userQuestion: userQuestion,
-          enabledRules: [],
-          apiServer: apiServer,
-          aiDefenseMode: aiDefenseMode,
-          extractedText: "",
-        });
-        if (!apiPromptInspectResult.response.is_safe) {
-          response = await runInference(
-            "AI Defense [Prompt]: ",
-            `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
-          );
-
-          return res.status(200).json(response);
+            return res.status(200).json(response);
+          }
+        } catch (err) {
+          console.log(err);
         }
       } else {
         return res.status(405).json({
@@ -344,26 +354,30 @@ export default async function handler(req, res) {
         response?.body?.output?.message?.content?.[0]?.text ??
         response?.data?.body?.output?.message?.content?.[0].text ??
         "No response received.";
-      if (req.headers["ai-defense-mode"] === "api") {
-        const apiInspectResult = await callChatInspect({
-          apiKey: aiDefenseKey,
-          promptRole: "user",
-          userQuestion: userQuestion,
-          responseRole: "assistant",
-          answer: answer,
-          enabledRules: [],
-          apiServer: apiServer,
-          aiDefenseMode: aiDefenseMode,
-          extractedText: "",
-        });
-        if (!apiInspectResult.response.is_safe) {
-          response = await runInference(
-            "AI Defense [Response]: ",
-            `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
-          );
+      try {
+        if (req.headers["ai-defense-mode"] === "api") {
+          const apiInspectResult = await callChatInspect({
+            apiKey: aiDefenseKey,
+            promptRole: "user",
+            userQuestion: userQuestion,
+            responseRole: "assistant",
+            answer: answer,
+            enabledRules: [],
+            apiServer: apiServer,
+            aiDefenseMode: aiDefenseMode,
+            extractedText: "",
+          });
+          if (!apiInspectResult.response.is_safe) {
+            response = await runInference(
+              "AI Defense [Response]: ",
+              `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
+            );
 
-          return res.status(200).json(response);
+            return res.status(200).json(response);
+          }
         }
+      } catch (err) {
+        console.log(err);
       }
     } else {
       return res.status(405).json({
