@@ -94,22 +94,26 @@ export default async function handler(req, res) {
             error: "'ai-defense-key' header is missing from HTTP request",
           });
         }
-        const apiPromptInspectResult = await callChatInspectPrompt({
-          apiKey: aiDefenseKey,
-          promptRole: "user",
-          userQuestion: userQuestion,
-          enabledRules: [],
-          apiServer: apiServer,
-          aiDefenseMode: aiDefenseMode,
-          extractedText: "",
-        });
-        if (!apiPromptInspectResult.response.is_safe) {
-          response = await runInference(
-            "AI Defense [Prompt]: ",
-            `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
-          );
+        try {
+          const apiPromptInspectResult = await callChatInspectPrompt({
+            apiKey: aiDefenseKey,
+            promptRole: "user",
+            userQuestion: userQuestion,
+            enabledRules: [],
+            apiServer: apiServer,
+            aiDefenseMode: aiDefenseMode,
+            extractedText: "",
+          });
+          if (!apiPromptInspectResult.response.is_safe) {
+            response = await runInference(
+              "AI Defense [Prompt]: ",
+              `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
+            );
 
-          return res.status(200).json(response);
+            return res.status(200).json(response);
+          }
+        } catch (err) {
+          console.log(err);
         }
       } else {
         return res.status(405).json({
@@ -189,22 +193,26 @@ export default async function handler(req, res) {
             error: "'ai-defense-key' header is missing from HTTP request",
           });
         }
-        const apiPromptInspectResult = await callChatInspectPrompt({
-          apiKey: aiDefenseKey,
-          promptRole: "user",
-          userQuestion: userQuestion,
-          enabledRules: [],
-          apiServer: apiServer,
-          aiDefenseMode: aiDefenseMode,
-          extractedText: "",
-        });
-        if (!apiPromptInspectResult.response.is_safe) {
-          response = await runInference(
-            "AI Defense [Prompt]: ",
-            `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
-          );
+        try {
+          const apiPromptInspectResult = await callChatInspectPrompt({
+            apiKey: aiDefenseKey,
+            promptRole: "user",
+            userQuestion: userQuestion,
+            enabledRules: [],
+            apiServer: apiServer,
+            aiDefenseMode: aiDefenseMode,
+            extractedText: "",
+          });
+          if (!apiPromptInspectResult.response.is_safe) {
+            response = await runInference(
+              "AI Defense [Prompt]: ",
+              `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
+            );
 
-          return res.status(200).json(response);
+            return res.status(200).json(response);
+          }
+        } catch (err) {
+          console.log(err);
         }
       } else {
         return res.status(405).json({
