@@ -6,6 +6,7 @@ export default function DropdownMenu({ menuData }) {
   const [hoveredItem, setHoveredItem] = useState(null);
   const menuRef = useRef();
 
+  const timeoutRef = useRef();
   // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -20,6 +21,32 @@ export default function DropdownMenu({ menuData }) {
   }, []);
 
   const firstLayerOptions = ["Prompt", "Response", "Prompt and Response"];
+
+  const handleMouseEnter = (category) => {
+    // clear any previous scheduled switch
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    if (subMenu && subMenu !== category) {
+      // submenu already open → schedule delayed switch
+      timeoutRef.current = setTimeout(() => {
+        setSubMenu(category); // ✅ closure safe, using argument
+      }, 250);
+    } else {
+      // no submenu open → open immediately
+      setSubMenu(category);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    // cancel any pending switch
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    // small delay before closing submenu entirely
+    timeoutRef.current = setTimeout(() => {
+      setSubMenu(null);
+      setHoveredItem(null);
+    }, 1000);
+  };
 
   return (
     <div className="relative inline-block" ref={menuRef}>
@@ -37,11 +64,8 @@ export default function DropdownMenu({ menuData }) {
             <div
               key={category}
               className="relative group"
-              onMouseEnter={() => setSubMenu(category)}
-              onMouseLeave={() => {
-                setSubMenu(null);
-                setHoveredItem(null);
-              }}
+              onMouseEnter={() => handleMouseEnter(category)} // 🔵 replaced direct setSubMenu
+              onMouseLeave={handleMouseLeave} // 🔵 replaced direct reset
             >
               {/* First Layer */}
               <button className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-gray-800">

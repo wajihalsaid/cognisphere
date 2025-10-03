@@ -173,10 +173,82 @@ const predefinedQuestions = [
   "How does AI work?",
 ];
 
+
+
 function processInspectionResults(response, enabledRules) {
   if (response.is_safe) return null; // No violations
 
   let violations = [];
+
+      const parseEnabledRules = (rules) => {
+    if (!rules) return null;
+    try {
+      const arrayRules = Object.entries(enabledRules)
+        .filter(([_, value]) => value.enabled) // Filter enabled rules
+        .map(([key]) => ({ rule_name: key })); // Map to required format
+      const modifiedRules = arrayRules.map((rule) => {
+        if (rule.rule_name === "PCI") {
+          return {
+            ...rule,
+            entity_types: [
+              "Individual Taxpayer Identification Number (ITIN) (US)",
+              "International Bank Account Number (IBAN)",
+              "American Bankers Association (ABA) Routing Number (US)",
+              "Credit Card Number",
+              "Bank Account Number (US)",
+            ],
+          };
+        } else if (rule.rule_name === "PII") {
+          return {
+            ...rule,
+            entity_types: [
+              "Email Address",
+              "IP Address",
+              "Phone Number",
+              "Driver's License Number (US)",
+              "Passport Number (US)",
+              "Social Security Number (SSN) (US)",
+            ],
+          };
+        } else if (rule.rule_name === "PHI") {
+          return {
+            ...rule,
+            entity_types: [
+              "Medical License Number (US)",
+              "National Health Service (NHS) Number",
+            ],
+          };
+        }
+        return rule;
+      });
+      return modifiedRules;
+    } catch (error) {
+      console.error("Error parsing enabledRules:", error);
+      return null;
+    }
+  };
+  const isEmptyArray = Array.isArray(parseEnabledRules(enabledRules)) && parseEnabledRules(enabledRules).length === 0;
+
+  if (isEmptyArray){
+  response.rules.forEach((rule) => {
+    violations.push({
+      classification: rule.classification,
+      rule_name: rule.rule_name,
+      entity_types: rule.entity_types.filter((e) => e),
+      attack_technique:
+        response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
+          ? response.attack_technique
+          : null,
+      severity:
+        response.severity !== "NONE_SEVERITY" ? response.severity : null,
+              action: "Alert",
+    });
+  });
+
+  return violations.length ? violations : null;
+
+
+  } else {
 
   response.rules.forEach((rule) => {
     const matchedRule = enabledRules[rule.rule_name];
@@ -199,8 +271,8 @@ function processInspectionResults(response, enabledRules) {
       action: matchedRule.action,
     });
   });
-
   return violations.length ? violations : null;
+}
 }
 
 function generateAlertMessages(violations) {
@@ -214,33 +286,30 @@ function generateAlertMessages(violations) {
   });
 }
 
+
 function generateAlertMessage(violations) {
   if (!violations || violations.length === 0) return null;
 
-  const blockMessage = violations.find((v) => v.action === "Block");
-  if (blockMessage) {
-    return {
-      message: `Violation detected: ${blockMessage.rule_name}${
-        blockMessage.entity_types.length
-          ? ` (${blockMessage.entity_types.join(", ")})`
+const blockMessages = violations.filter((v) => v.action === "Block");
+const alertMessages = violations.filter((v) => v.action === "Alert");
+if (alertMessages.length > 0 || blockMessages.length > 0)
+{
+    let type = "orange"
+    const message = "Violation detected:\n" + violations.map(
+    (v) =>
+      ` ${v.classification}: ${v.rule_name}${
+        v.entity_types && v.entity_types.length
+          ? ` (${v.entity_types.join(",")})`
           : ""
-      }. Classification: ${blockMessage.classification}.`,
-      type: "red",
-    };
+      }`
+  ).join("\n");
+  if (blockMessages.length > 0) 
+  {
+    type = "red";
   }
+  return { message: message, type: type };
 
-  const alertMessage = violations.find((v) => v.action === "Alert");
-  if (alertMessage) {
-    return {
-      message: `Violation detected: ${alertMessage.rule_name}${
-        alertMessage.entity_types.length
-          ? ` (${alertMessage.entity_types.join(", ")})`
-          : ""
-      }. Classification: ${alertMessage.classification}.`,
-      type: "orange",
-    };
-  }
-
+}
   return null;
 }
 
@@ -739,6 +808,7 @@ const Chatbot = () => {
           const aiDefenseMessage = generateAlertMessage(violations).message;
           //console.log ("aiDefenseMessage: ", aiDefenseMessage || null);
           const aiDefenseAction = generateAlertMessage(violations).type;
+          //console.log ("aiDefenseAction: ", aiDefenseAction || null);
           aiDefenseTriggerAction = aiDefenseAction;
           aiDefenseTriggerMessage = aiDefenseMessage;
           try {
@@ -1347,7 +1417,7 @@ const Chatbot = () => {
                   // 🔴 Display Red Alert Only
                   return (
                     <div key={index} className="flex justify-center">
-                      <div className="bg-red-600 text-white rounded-lg px-4 py-3 max-w-[50%] text-center flex">
+                      <div className="bg-red-600 text-white rounded-lg px-4 py-3 max-w-[60%] text-center flex">
                         <span
                           className="text-5xl"
                           style={{
@@ -1357,7 +1427,7 @@ const Chatbot = () => {
                         >
                           🚫
                         </span>
-                        <p className="text-sm font-bold">
+                        <p className="text-sm font-bold whitespace-pre-line">
                           {item.aiDefenseMessage}
                         </p>
                       </div>
@@ -1377,9 +1447,9 @@ const Chatbot = () => {
                     {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
                     {item.aiDefenseTriggerAction === "orange" && (
                       <div className="flex justify-center">
-                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[50%] text-center flex">
+                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[60%] text-center flex">
                           <span className="text-4xl">⚠️</span>
-                          <p className="text-sm font-bold">
+                          <p className="text-sm font-bold whitespace-pre-line">
                             {item.aiDefenseTriggerMessage}
                           </p>
                         </div>
@@ -1508,9 +1578,9 @@ const Chatbot = () => {
                     {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
                     {item.aiDefenseAction === "orange" && (
                       <div className="flex justify-center">
-                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[50%] text-center flex">
+                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[60%] text-center flex">
                           <span className="text-4xl">⚠️</span>
-                          <p className="text-sm font-bold">
+                          <p className="text-sm font-bold whitespace-pre-line">
                             {item.aiDefenseMessage}
                           </p>
                         </div>

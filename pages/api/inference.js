@@ -4,6 +4,41 @@ import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 
+function generateAlertMessage(violations) {
+  if (!violations || violations.length === 0) return null;
+  const blockMessage = violations.map(
+    (v) =>
+      ` ${v.classification}: ${v.rule_name}${
+        v.entity_types && v.entity_types.length
+          ? ` (${v.entity_types.join(", ")})`
+          : ""
+      }`
+  );
+  return { message: blockMessage };
+}
+
+function processInspectionResults(response) {
+  if (response.is_safe) return null; // No violations
+  //console.log ("process response: ", response);
+  let violations = [];
+
+  response.rules.forEach((rule) => {
+    violations.push({
+      classification: rule.classification,
+      rule_name: rule.rule_name,
+      entity_types: rule.entity_types.filter((e) => e),
+      attack_technique:
+        response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
+          ? response.attack_technique
+          : null,
+      severity:
+        response.severity !== "NONE_SEVERITY" ? response.severity : null,
+    });
+  });
+
+  return violations.length ? violations : null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -105,9 +140,12 @@ export default async function handler(req, res) {
             extractedText: "",
           });
           if (!apiPromptInspectResult.response.is_safe) {
+            const Violation = processInspectionResults(
+              apiPromptInspectResult.response ?? []
+            );
             response = await runInference(
               "AI Defense [Prompt]: ",
-              `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
+              `Blocked due to${generateAlertMessage(processInspectionResults(apiPromptInspectResult.response ?? [])).message}.`
             );
 
             return res.status(200).json(response);
@@ -167,7 +205,7 @@ export default async function handler(req, res) {
           if (!apiInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Response]: ",
-              `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
+              `Blocked due to${generateAlertMessage(processInspectionResults(apiInspectResult.response ?? [])).message}.`
             );
 
             return res.status(200).json(response);
@@ -210,7 +248,7 @@ export default async function handler(req, res) {
           if (!apiPromptInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Prompt]: ",
-              `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
+              `Blocked due to${generateAlertMessage(processInspectionResults(apiPromptInspectResult.response ?? [])).message}.`
             );
 
             return res.status(200).json(response);
@@ -258,7 +296,7 @@ export default async function handler(req, res) {
           if (!apiInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Response]: ",
-              `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
+              `Blocked due to${generateAlertMessage(processInspectionResults(apiInspectResult.response ?? [])).message}.`
             );
             return res.status(200).json(response);
           }
@@ -303,7 +341,7 @@ export default async function handler(req, res) {
           if (!apiPromptInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Prompt]: ",
-              `Blocked due to ${apiPromptInspectResult.response.classifications[0]} - ${apiPromptInspectResult.response.rules[0].rule_name}`
+              `Blocked due to${generateAlertMessage(processInspectionResults(apiPromptInspectResult.response ?? [])).message}.`
             );
 
             return res.status(200).json(response);
@@ -370,7 +408,7 @@ export default async function handler(req, res) {
           if (!apiInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Response]: ",
-              `Blocked due to ${apiInspectResult.response.classifications[0]} - ${apiInspectResult.response.rules[0].rule_name}`
+              `Blocked due to${generateAlertMessage(processInspectionResults(apiInspectResult.response ?? [])).message}.`
             );
 
             return res.status(200).json(response);

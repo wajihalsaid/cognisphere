@@ -318,10 +318,15 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
           extractedText: "",
         });
       } catch (error) {
+        const isEmptyArray = Array.isArray(parseEnabledRules(enabledRules)) && parseEnabledRules(enabledRules).length === 0;
+        //console.error ("enabledrules: ", parseEnabledRules(enabledRules));
+        //console.error ("isEmptyArray: ", isEmptyArray);
     if (error.message === "Request failed with status code 400") {
       alert("This connection already has policy configured on AI Defense Dashboard. Please disable the existing Enabled Rules in Settings or use an API key associated with a connection that has no rules configured.");
     } else if (error.message === "Request failed with status code 401") {
       alert("API Key is invalid. Please verify");
+    } else if ((error.message === "Request failed with status code 500") && isEmptyArray) {
+      alert("The AI Defense API key that you are using is not associated with any policy on AI Defense Dashboard. Please configure policy on AI Defense Dashboard or enable any of existing rules here");
     } else {
       alert("An unexpected error occurred: " + error.message);
     }
