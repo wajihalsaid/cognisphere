@@ -500,6 +500,7 @@ export async function callOpenAI({
           ? {}
           : { Authorization: `Bearer ${apiKey}` }),
         "Content-Type": "application/json",
+        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
       },
     });
 
@@ -845,6 +846,7 @@ export async function callBedrock({
       path,
       headers: {
         "Content-Type": "application/json",
+        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
         accept: "application/json",
         Host: hostname,
       },

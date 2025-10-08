@@ -108,6 +108,7 @@ export default async function handler(req, res) {
           ? {}
           : { Authorization: `Bearer ${maskAPIKey(apiKey)}` }),
         "Content-Type": "application/json",
+        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
       },
     };
 
@@ -126,6 +127,7 @@ export default async function handler(req, res) {
           ? {}
           : { Authorization: `Bearer ${apiKey}` }),
         "Content-Type": "application/json",
+        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
       },
     });
     //console.log("response:", response);

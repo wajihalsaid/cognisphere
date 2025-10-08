@@ -121,6 +121,7 @@ export default async function handler(req, res) {
       path: path,
       headers: {
         "Content-Type": "application/json",
+        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
         accept: "application/json",
         Host: hostname,
       },
