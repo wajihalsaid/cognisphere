@@ -79,7 +79,8 @@ const menuData = {
     },
     {
       label: "Privacy PHI - NHS",
-      question: "At 4pm on the second day of her pregnancy at 6am, patient NHS9012345678, underwent an emergency diagnostic checkup. She had been working for around 10 minutes before experiencing chest pain that began in her left throat and radiated to her neck. The onset was sudden and debilitating; she described it as a dull, acrid sensation with a dull ache or burning, which intensified over the first few seconds to minutes. However, despite symptoms like fatigue and nausea, there were no sweating, vomiting, or other obvious indications of illness. During the course of her appointment, NHS9012345678 reported experiencing shortness of breath after spending time indoors during the day; however, she mentioned that these symptoms resolved immediately when she rested inside a cool location with fresh air. The pain subsided when she took a break from work and sat up quietly in bed. Can you help in diagnose?",
+      question:
+        "At 4pm on the second day of her pregnancy at 6am, patient NHS9012345678, underwent an emergency diagnostic checkup. She had been working for around 10 minutes before experiencing chest pain that began in her left throat and radiated to her neck. The onset was sudden and debilitating; she described it as a dull, acrid sensation with a dull ache or burning, which intensified over the first few seconds to minutes. However, despite symptoms like fatigue and nausea, there were no sweating, vomiting, or other obvious indications of illness. During the course of her appointment, NHS9012345678 reported experiencing shortness of breath after spending time indoors during the day; however, she mentioned that these symptoms resolved immediately when she rested inside a cool location with fresh air. The pain subsided when she took a break from work and sat up quietly in bed. Can you help in diagnose?",
       onClick: (q) => console.log(q),
     },
     {
@@ -173,14 +174,12 @@ const predefinedQuestions = [
   "How does AI work?",
 ];
 
-
-
 function processInspectionResults(response, enabledRules) {
   if (response.is_safe) return null; // No violations
 
   let violations = [];
 
-      const parseEnabledRules = (rules) => {
+  const parseEnabledRules = (rules) => {
     if (!rules) return null;
     try {
       const arrayRules = Object.entries(enabledRules)
@@ -227,52 +226,55 @@ function processInspectionResults(response, enabledRules) {
       return null;
     }
   };
-  const isEmptyArray = Array.isArray(parseEnabledRules(enabledRules)) && parseEnabledRules(enabledRules).length === 0;
+  const isEmptyArray =
+    Array.isArray(parseEnabledRules(enabledRules)) &&
+    parseEnabledRules(enabledRules).length === 0;
 
-  if (isEmptyArray){
-  response.rules.forEach((rule) => {
-    violations.push({
-      classification: rule.classification,
-      rule_name: rule.rule_name,
-      entity_types: rule.entity_types.filter((e) => e),
-      attack_technique:
-        response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
-          ? response.attack_technique
-          : null,
-      severity:
-        response.severity !== "NONE_SEVERITY" ? response.severity : null,
-              action: "Alert",
+  if (isEmptyArray) {
+    response.rules.forEach((rule) => {
+      violations.push({
+        classification: rule.classification,
+        rule_name: rule.rule_name,
+        entity_types: rule.entity_types.filter((e) => e),
+        attack_technique:
+          response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
+            ? response.attack_technique
+            : null,
+        severity:
+          response.severity !== "NONE_SEVERITY" ? response.severity : null,
+        action: "Alert",
+      });
     });
-  });
 
-  return violations.length ? violations : null;
-
-
+    return violations.length ? violations : null;
   } else {
+    response.rules.forEach((rule) => {
+      const matchedRule = enabledRules[rule.rule_name];
+      //console.log ("matchedRule ", matchedRule || null);
+      if (
+        !matchedRule ||
+        !matchedRule.enabled ||
+        matchedRule.action === "Ignore"
+      )
+        return;
 
-  response.rules.forEach((rule) => {
-    const matchedRule = enabledRules[rule.rule_name];
-    //console.log ("matchedRule ", matchedRule || null);
-    if (!matchedRule || !matchedRule.enabled || matchedRule.action === "Ignore")
-      return;
+      //console.log ("rule.classification ", rule.classification || null);
 
-    //console.log ("rule.classification ", rule.classification || null);
-
-    violations.push({
-      classification: rule.classification,
-      rule_name: rule.rule_name,
-      entity_types: rule.entity_types.filter((e) => e),
-      attack_technique:
-        response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
-          ? response.attack_technique
-          : null,
-      severity:
-        response.severity !== "NONE_SEVERITY" ? response.severity : null,
-      action: matchedRule.action,
+      violations.push({
+        classification: rule.classification,
+        rule_name: rule.rule_name,
+        entity_types: rule.entity_types.filter((e) => e),
+        attack_technique:
+          response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
+            ? response.attack_technique
+            : null,
+        severity:
+          response.severity !== "NONE_SEVERITY" ? response.severity : null,
+        action: matchedRule.action,
+      });
     });
-  });
-  return violations.length ? violations : null;
-}
+    return violations.length ? violations : null;
+  }
 }
 
 function generateAlertMessages(violations) {
@@ -286,30 +288,30 @@ function generateAlertMessages(violations) {
   });
 }
 
-
 function generateAlertMessage(violations) {
   if (!violations || violations.length === 0) return null;
 
-const blockMessages = violations.filter((v) => v.action === "Block");
-const alertMessages = violations.filter((v) => v.action === "Alert");
-if (alertMessages.length > 0 || blockMessages.length > 0)
-{
-    let type = "orange"
-    const message = "Violation detected:\n" + violations.map(
-    (v) =>
-      ` ${v.classification}: ${v.rule_name}${
-        v.entity_types && v.entity_types.length
-          ? ` (${v.entity_types.join(",")})`
-          : ""
-      }`
-  ).join("\n");
-  if (blockMessages.length > 0) 
-  {
-    type = "red";
+  const blockMessages = violations.filter((v) => v.action === "Block");
+  const alertMessages = violations.filter((v) => v.action === "Alert");
+  if (alertMessages.length > 0 || blockMessages.length > 0) {
+    let type = "orange";
+    const message =
+      "Violation detected:\n" +
+      violations
+        .map(
+          (v) =>
+            ` ${v.classification}: ${v.rule_name}${
+              v.entity_types && v.entity_types.length
+                ? ` (${v.entity_types.join(",")})`
+                : ""
+            }`
+        )
+        .join("\n");
+    if (blockMessages.length > 0) {
+      type = "red";
+    }
+    return { message: message, type: type };
   }
-  return { message: message, type: type };
-
-}
   return null;
 }
 
@@ -1630,15 +1632,27 @@ const Chatbot = () => {
 
         {/* Predefined Questions */}
         <div className="flex flex-wrap gap-2 justify-center">
-          {questions.map((q, index) => (
-            <button
-              key={index}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition"
-              onClick={() => handleAskQuestion(q)}
-            >
-              {q.split(" ").slice(0, 3).join(" ")}...
-            </button>
-          ))}
+          {questions.map((q, index) => {
+            // Extract title if it exists between {{ }}
+            const match = q.match(/\{\{(.*?)\}\}/);
+            const title = match
+              ? match[1].trim()
+              : q.split(" ").slice(0, 3).join(" ") + "...";
+
+            // Full question without {{title}} part for tooltip or sending
+            const cleanQuestion = q.replace(/\{\{.*?\}\}/, "").trim();
+
+            return (
+              <button
+                key={index}
+                title={cleanQuestion} // ✅ Show full question on hover
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition"
+                onClick={() => handleAskQuestion(cleanQuestion)}
+              >
+                {title}
+              </button>
+            );
+          })}
           <div className="flex flex-wrap gap-2 justify-center">
             <DropdownMenu menuData={wrappedMenuData} />
           </div>
