@@ -52,53 +52,53 @@ const awsRegions = [
   "us-gov-west-1", // AWS GovCloud (US-West)
 ];
 
-  const parseEnabledRules = (rules) => {
-    if (!rules) return null;
-    try {
-      const arrayRules = Object.entries(rules)
-        .filter(([_, value]) => value.enabled) // Filter enabled rules
-        .map(([key]) => ({ rule_name: key })); // Map to required format
-      const modifiedRules = arrayRules.map((rule) => {
-        if (rule.rule_name === "PCI") {
-          return {
-            ...rule,
-            entity_types: [
-              "Individual Taxpayer Identification Number (ITIN) (US)",
-              "International Bank Account Number (IBAN)",
-              "American Bankers Association (ABA) Routing Number (US)",
-              "Credit Card Number",
-              "Bank Account Number (US)",
-            ],
-          };
-        } else if (rule.rule_name === "PII") {
-          return {
-            ...rule,
-            entity_types: [
-              "Email Address",
-              "IP Address",
-              "Phone Number",
-              "Driver's License Number (US)",
-              "Passport Number (US)",
-              "Social Security Number (SSN) (US)",
-            ],
-          };
-        } else if (rule.rule_name === "PHI") {
-          return {
-            ...rule,
-            entity_types: [
-              "Medical License Number (US)",
-              "National Health Service (NHS) Number",
-            ],
-          };
-        }
-        return rule;
-      });
-      return modifiedRules;
-    } catch (error) {
-      console.error("Error parsing enabledRules:", error);
-      return null;
-    }
-  };
+const parseEnabledRules = (rules) => {
+  if (!rules) return null;
+  try {
+    const arrayRules = Object.entries(rules)
+      .filter(([_, value]) => value.enabled) // Filter enabled rules
+      .map(([key]) => ({ rule_name: key })); // Map to required format
+    const modifiedRules = arrayRules.map((rule) => {
+      if (rule.rule_name === "PCI") {
+        return {
+          ...rule,
+          entity_types: [
+            "Individual Taxpayer Identification Number (ITIN) (US)",
+            "International Bank Account Number (IBAN)",
+            "American Bankers Association (ABA) Routing Number (US)",
+            "Credit Card Number",
+            "Bank Account Number (US)",
+          ],
+        };
+      } else if (rule.rule_name === "PII") {
+        return {
+          ...rule,
+          entity_types: [
+            "Email Address",
+            "IP Address",
+            "Phone Number",
+            "Driver's License Number (US)",
+            "Passport Number (US)",
+            "Social Security Number (SSN) (US)",
+          ],
+        };
+      } else if (rule.rule_name === "PHI") {
+        return {
+          ...rule,
+          entity_types: [
+            "Medical License Number (US)",
+            "National Health Service (NHS) Number",
+          ],
+        };
+      }
+      return rule;
+    });
+    return modifiedRules;
+  } catch (error) {
+    console.error("Error parsing enabledRules:", error);
+    return null;
+  }
+};
 
 const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
   const [openAIKey, setOpenAIKey] = useState("");
@@ -111,6 +111,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
   const [awsSecretKey, setAwsSecretKey] = useState("");
   const [awsBedrockCustomURL, setAwsBedrockCustomURL] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [customApiServerUrl, setCustomApiServerUrl] = useState("");
 
   const decryptKey = (encryptedKey) => {
     if (!encryptedKey) return "";
@@ -278,7 +279,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
 
       // To prevent adding additional context to url
       const regex =
-        /^(https:\/\/.*\.gateway\.aidefense\.security\.cisco\.com\/[a-f0-9\-]+\/connections\/[a-f0-9\-]+)(?:.*)?$/;
+        /^(https:\/\/.*\..*\..*\/[a-f0-9\-]+\/connections\/[a-f0-9\-]+)(?:.*)?$/;
       const match = gatewayUrl.match(regex);
       let gwUrl = "";
       if (match) {
@@ -318,18 +319,28 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
           extractedText: "",
         });
       } catch (error) {
-        const isEmptyArray = Array.isArray(parseEnabledRules(enabledRules)) && parseEnabledRules(enabledRules).length === 0;
+        const isEmptyArray =
+          Array.isArray(parseEnabledRules(enabledRules)) &&
+          parseEnabledRules(enabledRules).length === 0;
         //console.error ("enabledrules: ", parseEnabledRules(enabledRules));
-        //console.error ("isEmptyArray: ", isEmptyArray);
-    if (error.message === "Request failed with status code 400") {
-      alert("This connection already has policy configured on AI Defense Dashboard. Please disable the existing Enabled Rules in Settings or use an API key associated with a connection that has no rules configured.");
-    } else if (error.message === "Request failed with status code 401") {
-      alert("API Key is invalid. Please verify");
-    } else if ((error.message === "Request failed with status code 500") && isEmptyArray) {
-      alert("The AI Defense API key that you are using is not associated with any policy on AI Defense Dashboard. Please configure policy on AI Defense Dashboard or enable any of existing rules here");
-    } else {
-      alert("An unexpected error occurred: " + error.message);
-    }
+        //console.error ("error.message: ", error.response.data.error.message);
+        if (error.message === "Request failed with status code 400") {
+          alert(
+            error?.response?.data?.error?.message ??
+              "Request failed with status code 400"
+          );
+        } else if (error.message === "Request failed with status code 401") {
+          alert("API Key is invalid. Please verify");
+        } else if (
+          error.message === "Request failed with status code 500" &&
+          isEmptyArray
+        ) {
+          alert(
+            "The AI Defense API key that you are using is not associated with any policy on AI Defense Dashboard. Please configure policy on AI Defense Dashboard or enable any of existing rules here"
+          );
+        } else {
+          alert("An unexpected error occurred: " + error.message);
+        }
         return;
       } finally {
         setIsSaving(false); // Stop loading
@@ -793,12 +804,27 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                   </select>
                 </>
               )}
+
               {aiDefenseMode === "api" && (
                 <>
+                  {/* 🆕 Modified API server dropdown with Custom Server option */}
                   <select
                     className="w-full bg-gray-700 p-2 rounded mb-2"
-                    value={apiServer}
-                    onChange={(e) => setApiServer(e.target.value)}
+                    value={
+                      apiServer.startsWith("https://us.api.inspect") ||
+                      apiServer.startsWith("https://eu.api.inspect") ||
+                      apiServer.startsWith("https://ap.api.inspect")
+                        ? apiServer
+                        : "custom"
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "custom") {
+                        setApiServer("custom");
+                      } else {
+                        setApiServer(value);
+                      }
+                    }}
                   >
                     <option value="">Select API Server</option>
                     <option value="https://us.api.inspect.aidefense.security.cisco.com/">
@@ -810,7 +836,53 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     <option value="https://ap.api.inspect.aidefense.security.cisco.com/">
                       AP Server
                     </option>
+                    <option value="custom">Custom Server</option>{" "}
+                    {/* 🆕 New option */}
                   </select>
+
+                  {/* 🆕 Custom Server input (auto-sanitizes on blur) */}
+                  {(apiServer === "custom" ||
+                    (!apiServer.includes("us.api.inspect") &&
+                      !apiServer.includes("eu.api.inspect") &&
+                      !apiServer.includes("ap.api.inspect") &&
+                      apiServer)) && (
+                    <div className="mb-2">
+                      <input
+                        type="text"
+                        value={customApiServerUrl}
+                        onChange={(e) => setCustomApiServerUrl(e.target.value)}
+                        onBlur={() => {
+                          let sanitized = (
+                            customApiServerUrl || apiServer
+                          ).trim();
+
+                          if (!sanitized) return;
+
+                          // Ensure starts with https://
+                          if (!/^https?:\/\//i.test(sanitized)) {
+                            sanitized = "https://" + sanitized;
+                          }
+
+                          try {
+                            // Use the URL() constructor to parse safely
+                            const url = new URL(sanitized);
+
+                            // Keep only origin (protocol + hostname + optional port)
+                            sanitized = url.origin + "/"; // ensures exactly one trailing slash
+                          } catch (err) {
+                            console.error("Invalid URL:", sanitized);
+                            return;
+                          }
+
+                          setCustomApiServerUrl(sanitized);
+                          setApiServer(sanitized);
+                        }}
+                        placeholder="https://aidefense.domain.local/"
+                        className="w-full bg-gray-700 p-2 rounded mb-2"
+                      />
+                    </div>
+                  )}
+
                   <input
                     type="password"
                     value={apiKey}

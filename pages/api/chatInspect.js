@@ -1,4 +1,6 @@
 import axios from "axios";
+import https from "https";
+
 const chatUrl = "api/v1/inspect/chat"; // Default Chat Inspect API URL
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -26,6 +28,11 @@ export default async function handler(req, res) {
   };
   let apiUrl = apiServer + chatUrl;
   let requestDetails = "";
+  const allowedPrefixes = [
+    "https://us.api.inspect",
+    "https://eu.api.inspect",
+    "https://ap.api.inspect",
+  ];
   try {
     const requestPayload = {
       messages: [
@@ -61,21 +68,33 @@ export default async function handler(req, res) {
       headers: maskedHeaders,
       body: requestPayload,
     };
-    const response = await axios.post(apiUrl, requestPayload, { headers });
+    const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
+      apiUrl.startsWith(prefix)
+    );
+    const agent = shouldIgnoreCert
+      ? new https.Agent({ rejectUnauthorized: false })
+      : undefined;
+    const response = await axios.post(apiUrl, requestPayload, {
+      headers,
+      httpsAgent: agent,
+    });
     res.status(200).json({ response: response.data, logs: requestDetails });
   } catch (error) {
-    //console.error("AI Defense API Error:", JSON.stringify(error)); // Log full error for debugging
+    console.error("AI Defense API Error:", JSON.stringify(error)); // Log full error for debugging
     //console.error ("enabledrules: ", JSON.parse(error?.config?.data ?? "{}")?.config?.enabled_rules ?? null)
-   //let pushedEnabledRules = JSON.parse(error?.config?.data ?? "{}")?.config?.enabled_rules ?? ["null"];
-    const isEmptyArray = Array.isArray(enabledRules) && enabledRules.length === 0;
+    //let pushedEnabledRules = JSON.parse(error?.config?.data ?? "{}")?.config?.enabled_rules ?? ["null"];
+    const isEmptyArray =
+      Array.isArray(enabledRules) && enabledRules.length === 0;
     //console.error ("isEmptyArray: ", isEmptyArray);
     //console.error ("enabledRules: ", enabledRules);
     const errorMessage =
-      error.status === 400
-    ? "This connection already has policy configured on AI Defense Dashboard. Please disable the existing Enabled Rules in Settings or use an API key associated with a connection that has no rules configured."
-    : (error.status === 500 && isEmptyArray)
-    ? "The AI Defense API key that you are using is not associated with any policy on AI Defense Dashboard. Please configure policy on AI Defense Dashboard or enable any of existing rules here"
-    : error.status === 401
+      error.code === "ERR_INVALID_URL"
+        ? "ERR_INVALID_URL"
+        : error.status === 400
+        ? "This connection already has policy configured on AI Defense Dashboard. Please disable the existing Enabled Rules in Settings or use an API key associated with a connection that has no rules configured."
+        : error.status === 500 && isEmptyArray
+        ? "The AI Defense API key that you are using is not associated with any policy on AI Defense Dashboard. Please configure policy on AI Defense Dashboard or enable any of existing rules here"
+        : error.status === 401
         ? "API Inspect Request Failed due to: Unauthorized (Invalid API Key)"
         : "API Inspect Request Failed due to: " +
           (error.code ||
@@ -83,8 +102,8 @@ export default async function handler(req, res) {
             error.message ||
             "Unknown error occurred");
     const errorStatus = error?.response?.status || "Unknown status";
-        //console.error ("errorMessage: ", errorMessage);
-    res.status(error.status).json({
+    //console.error ("errorMessage: ", errorMessage);
+    res.status(error.status || 400).json({
       error: {
         message: errorMessage || error,
         status: errorStatus,

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
+import https from "https";
 
 const conversationMemoryOpenAI = {}; // In-memory storage (resets on server restart)
 
@@ -22,6 +23,7 @@ export default async function handler(req, res) {
   // Generate a session ID if it's missing
   const userSessionId = sessionId || uuidv4();
 
+  let agent = undefined;
   let requestDetails = "";
   let apiUrl =
     llm.startsWith("gpt") || llm === "o3-mini"
@@ -35,6 +37,17 @@ export default async function handler(req, res) {
       : ""; // Default to an empty string if none match (to avoid undefined)
   // Change the URL if the mode is "gateway"
   if (aiDefenseMode === "gateway" && gatewayUrl) {
+    const allowedPrefixes = [
+      "https://us.gateway.aidefense",
+      "https://eu.gateway.aidefense",
+      "https://ap.gateway.aidefense",
+    ];
+    const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
+      apiUrl.startsWith(prefix)
+    );
+    agent = shouldIgnoreCert
+      ? new https.Agent({ rejectUnauthorized: false })
+      : undefined;
     apiUrl = gatewayUrl + "/v1/chat/completions"; // Set the custom gateway URL
   }
 
@@ -129,6 +142,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
         "Accept-Encoding": "", // Temporrary solution for Server Gateway option
       },
+      httpsAgent: agent,
     });
     //console.log("response:", response);
 

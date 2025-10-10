@@ -3,6 +3,8 @@ import axios from "axios";
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
+import https from "https";
+import { Agent } from "undici";
 
 function generateAlertMessage(violations) {
   if (!violations || violations.length === 0) return null;
@@ -74,7 +76,7 @@ export default async function handler(req, res) {
       ap: "https://ap.api.inspect.aidefense.security.cisco.com/",
     };
     let apiServer = "";
-    apiServer = regionMap[aiDefenseRegion] || regionMap["us"];
+    apiServer = regionMap[aiDefenseRegion] || aiDefenseRegion;
 
     //console.log("aiDefenseMode: ", aiDefenseMode);
     //console.log("gatewayUrl: ", gatewayUrl);
@@ -145,7 +147,13 @@ export default async function handler(req, res) {
             );
             response = await runInference(
               "AI Defense [Prompt]: ",
-              `Blocked due to${generateAlertMessage(processInspectionResults(apiPromptInspectResult.response ?? [])).message}.`
+              `Blocked due to${
+                generateAlertMessage(
+                  processInspectionResults(
+                    apiPromptInspectResult.response ?? []
+                  )
+                ).message
+              }.`
             );
 
             return res.status(200).json(response);
@@ -205,7 +213,11 @@ export default async function handler(req, res) {
           if (!apiInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Response]: ",
-              `Blocked due to${generateAlertMessage(processInspectionResults(apiInspectResult.response ?? [])).message}.`
+              `Blocked due to${
+                generateAlertMessage(
+                  processInspectionResults(apiInspectResult.response ?? [])
+                ).message
+              }.`
             );
 
             return res.status(200).json(response);
@@ -248,7 +260,13 @@ export default async function handler(req, res) {
           if (!apiPromptInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Prompt]: ",
-              `Blocked due to${generateAlertMessage(processInspectionResults(apiPromptInspectResult.response ?? [])).message}.`
+              `Blocked due to${
+                generateAlertMessage(
+                  processInspectionResults(
+                    apiPromptInspectResult.response ?? []
+                  )
+                ).message
+              }.`
             );
 
             return res.status(200).json(response);
@@ -296,7 +314,11 @@ export default async function handler(req, res) {
           if (!apiInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Response]: ",
-              `Blocked due to${generateAlertMessage(processInspectionResults(apiInspectResult.response ?? [])).message}.`
+              `Blocked due to${
+                generateAlertMessage(
+                  processInspectionResults(apiInspectResult.response ?? [])
+                ).message
+              }.`
             );
             return res.status(200).json(response);
           }
@@ -341,7 +363,13 @@ export default async function handler(req, res) {
           if (!apiPromptInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Prompt]: ",
-              `Blocked due to${generateAlertMessage(processInspectionResults(apiPromptInspectResult.response ?? [])).message}.`
+              `Blocked due to${
+                generateAlertMessage(
+                  processInspectionResults(
+                    apiPromptInspectResult.response ?? []
+                  )
+                ).message
+              }.`
             );
 
             return res.status(200).json(response);
@@ -408,7 +436,11 @@ export default async function handler(req, res) {
           if (!apiInspectResult.response.is_safe) {
             response = await runInference(
               "AI Defense [Response]: ",
-              `Blocked due to${generateAlertMessage(processInspectionResults(apiInspectResult.response ?? [])).message}.`
+              `Blocked due to${
+                generateAlertMessage(
+                  processInspectionResults(apiInspectResult.response ?? [])
+                ).message
+              }.`
             );
 
             return res.status(200).json(response);
@@ -455,6 +487,7 @@ export async function callOpenAI({
   SYSTEM_PROMPT,
 }) {
   try {
+    let agent = undefined;
     // Determine API URL
     let apiUrl =
       llm.startsWith("gpt") || llm === "o3-mini"
@@ -469,6 +502,17 @@ export async function callOpenAI({
     //console.log("aiDefenseMode: ", aiDefenseMode);
     //console.log("gatewayUrl: ", gatewayUrl);
     if (aiDefenseMode === "gateway" && gatewayUrl) {
+      const allowedPrefixes = [
+        "https://us.gateway.aidefense",
+        "https://eu.gateway.aidefense",
+        "https://ap.gateway.aidefense",
+      ];
+      const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
+        apiUrl.startsWith(prefix)
+      );
+      agent = shouldIgnoreCert
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
       apiUrl = gatewayUrl + "/v1/chat/completions";
     }
 
@@ -502,6 +546,7 @@ export async function callOpenAI({
         "Content-Type": "application/json",
         "Accept-Encoding": "", // Temporrary solution for Server Gateway option
       },
+      httpsAgent: agent,
     });
 
     const aiResponse =
@@ -547,6 +592,11 @@ export async function callChatInspectPrompt({
 }) {
   const chatUrl = "api/v1/inspect/chat"; // Default Chat Inspect API URL
   let apiUrl = apiServer + chatUrl;
+  const allowedPrefixes = [
+    "https://us.api.inspect",
+    "https://eu.api.inspect",
+    "https://ap.api.inspect",
+  ];
 
   const maskAPIKey = (apiKey) =>
     apiKey ? apiKey.replace(/(.{4})(.*)(.{4})/, "$1******$3") : "[REDACTED]";
@@ -590,7 +640,16 @@ export async function callChatInspectPrompt({
   };
 
   try {
-    const response = await axios.post(apiUrl, requestPayload, { headers });
+    const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
+      apiUrl.startsWith(prefix)
+    );
+    const agent = shouldIgnoreCert
+      ? new https.Agent({ rejectUnauthorized: false })
+      : undefined;
+    const response = await axios.post(apiUrl, requestPayload, {
+      headers,
+      httpsAgent: agent,
+    });
 
     return {
       response: response.data,
@@ -633,6 +692,11 @@ export async function callChatInspect({
 }) {
   const chatUrl = "api/v1/inspect/chat"; // Default Chat Inspect API URL
   let apiUrl = apiServer + chatUrl;
+  const allowedPrefixes = [
+    "https://us.api.inspect",
+    "https://eu.api.inspect",
+    "https://ap.api.inspect",
+  ];
 
   const maskAPIKey = (apiKey) =>
     apiKey ? apiKey.replace(/(.{4})(.*)(.{4})/, "$1******$3") : "[REDACTED]";
@@ -672,7 +736,17 @@ export async function callChatInspect({
   };
 
   try {
-    const response = await axios.post(apiUrl, requestPayload, { headers });
+    const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
+      apiUrl.startsWith(prefix)
+    );
+    const agent = shouldIgnoreCert
+      ? new https.Agent({ rejectUnauthorized: false })
+      : undefined;
+
+    const response = await axios.post(apiUrl, requestPayload, {
+      headers,
+      httpsAgent: agent,
+    });
 
     return {
       response: response.data,
@@ -835,7 +909,23 @@ export async function callBedrock({
     const path = `/model/${modelId}/converse`;
     let apiUrl = `https://${hostname}${path}`;
 
+    let agent = undefined;
     if (aiDefenseMode === "gateway" && gatewayUrl) {
+      const allowedPrefixes = [
+        "https://us.gateway.aidefense",
+        "https://eu.gateway.aidefense",
+        "https://ap.gateway.aidefense",
+      ];
+      const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
+        gatewayUrl.startsWith(prefix)
+      );
+      agent = shouldIgnoreCert
+        ? new Agent({
+            connect: {
+              rejectUnauthorized: false,
+            },
+          })
+        : undefined;
       apiUrl = gatewayUrl + path;
     }
 
@@ -846,7 +936,7 @@ export async function callBedrock({
       path,
       headers: {
         "Content-Type": "application/json",
-        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
+        //"Accept-Encoding": "", // Temporrary solution for Server Gateway option
         accept: "application/json",
         Host: hostname,
       },
@@ -859,6 +949,7 @@ export async function callBedrock({
       method: signedRequest.method,
       headers: signedRequest.headers,
       body: signedRequest.body,
+      dispatcher: agent,
     });
 
     const jsonResponse = response.headers.get("content-type")?.includes("json")
