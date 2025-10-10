@@ -41,6 +41,7 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.0.14",
+    "undici": "^7.16.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
