@@ -2,7 +2,10 @@ import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
-import { fetch, Agent } from "undici";
+import { Agent } from "undici";
+import { File } from 'formdata-node';
+globalThis.File = File;
+
 
 const conversationMemoryBedrock = {}; // In-memory storage (resets on server restart)
 
