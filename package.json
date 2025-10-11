@@ -23,6 +23,7 @@
     "axios": "^1.12.2",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
+    "formdata-node": "^6.0.3",
     "fs": "^0.0.1-security",
     "lucide-react": "^0.483.0",
     "mammoth": "^1.9.0",
