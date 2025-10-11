@@ -1,10 +1,14 @@
+// polyfill.js - MUST BE FIRST
+import { File } from 'formdata-node';
+globalThis.File = File;
+
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 import https from "https";
-import { Agent } from "undici";
+const { Agent } = await import('undici');
 
 function generateAlertMessage(violations) {
   if (!violations || violations.length === 0) return null;
