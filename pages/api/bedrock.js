@@ -1,14 +1,7 @@
-// polyfill.js - MUST BE FIRST
-import { File } from 'formdata-node';
-globalThis.File = File;
-
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
-import { Agent } from "undici";
-
-
 
 const conversationMemoryBedrock = {}; // In-memory storage (resets on server restart)
 
@@ -79,6 +72,7 @@ export default async function handler(req, res) {
         ? CustomURL
         : `bedrock-runtime.${region}.amazonaws.com`;
     const path = `/model/${modelId}/converse`;
+  
 
     // Retrieve chat history from memory storage (using sessionId)
     if (!conversationMemoryBedrock[sessionId]) {
@@ -127,30 +121,15 @@ export default async function handler(req, res) {
       path: path,
       headers: {
         "Content-Type": "application/json",
-        //"Accept-Encoding": "", // Temporrary solution for Server Gateway option
+        "Accept-Encoding": "", // Temporrary solution for Server Gateway option
         accept: "application/json",
         Host: hostname,
       },
       body: JSON.stringify(requestPayload),
     });
     const signedRequest = await signer.sign(request);
-    let agent = undefined;
+
     if (aiDefenseMode === "gateway" && gatewayUrl) {
-      const allowedPrefixes = [
-        "https://us.gateway.aidefense",
-        "https://eu.gateway.aidefense",
-        "https://ap.gateway.aidefense",
-      ];
-      const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
-        gatewayUrl.startsWith(prefix)
-      );
-      agent = shouldIgnoreCert
-        ? new Agent({
-            connect: {
-              rejectUnauthorized: false,
-            },
-          })
-        : undefined;
       apiUrl = gatewayUrl + path; // Set the custom gateway URL
     }
 
@@ -168,14 +147,12 @@ export default async function handler(req, res) {
       url: apiUrl,
       headers: maskedSignedHeaders,
       body: signedRequest.body,
-      dispatcher: agent,
     };
 
     const response = await fetch(apiUrl, {
       method: signedRequest.method,
       headers: signedRequest.headers,
       body: signedRequest.body,
-      dispatcher: agent,
     });
 
     const headersObject = {};
