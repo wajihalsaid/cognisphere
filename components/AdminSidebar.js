@@ -565,7 +565,9 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
               className="w-full bg-gray-700 p-2 rounded mb-2"
             />
 
-            <label className="block">groq API Key for LLMA & DeepSeek</label>
+            <label className="block">
+              groq API Key for LLMA & Qwen & MoonshotAI
+            </label>
             <input
               type="password"
               value={groqKey}

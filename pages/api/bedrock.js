@@ -1,5 +1,5 @@
 // polyfill.js - MUST BE FIRST
-import { File } from 'formdata-node';
+import { File } from "formdata-node";
 globalThis.File = File;
 
 import { Sha256 } from "@aws-crypto/sha256-js";
@@ -7,8 +7,7 @@ import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 import { v4 as uuidv4 } from "uuid"; // Import UUID for session ID generation
 
-const { Agent } = await import('undici');
-
+const { Agent } = await import("undici");
 
 const conversationMemoryBedrock = {}; // In-memory storage (resets on server restart)
 
@@ -61,9 +60,15 @@ export default async function handler(req, res) {
 
     const model = req.body.modelId;
     const modelId =
+      model === "anthropic.claude-haiku-4-5-20251001-v1:0" ||
+      model === "anthropic.claude-sonnet-4-5-20250929-v1:0" ||
+      model === "anthropic.claude-opus-4-1-20250805-v1:0" ||
+      model === "anthropic.claude-sonnet-4-20250514-v1:0" ||
       model === "anthropic.claude-3-7-sonnet-20250219-v1:0" ||
       model === "anthropic.claude-3-5-haiku-20241022-v1:0" ||
       model === "anthropic.claude-3-5-sonnet-20240620-v1:0" ||
+      model === "amazon.nova-premier-v1:0" ||
+      model === "meta.llama4-maverick-17b-instruct-v1:0" ||
       model === "meta.llama3-3-70b-instruct-v1:0" ||
       model === "meta.llama3-2-11b-instruct-v1:0" ||
       model === "meta.llama3-1-70b-instruct-v1:0" ||

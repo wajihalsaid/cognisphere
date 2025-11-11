@@ -1,5 +1,5 @@
 // polyfill.js - MUST BE FIRST
-import { File } from 'formdata-node';
+import { File } from "formdata-node";
 globalThis.File = File;
 
 import { v4 as uuidv4 } from "uuid";
@@ -8,7 +8,7 @@ import { Sha256 } from "@aws-crypto/sha256-js";
 import { HttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 import https from "https";
-const { Agent } = await import('undici');
+const { Agent } = await import("undici");
 
 function generateAlertMessage(violations) {
   if (!violations || violations.length === 0) return null;
@@ -95,7 +95,8 @@ export default async function handler(req, res) {
         "gpt-4",
         "llama-3.3-70b-versatile",
         "meta-llama/llama-4-maverick-17b-128e-instruct",
-        "deepseek-r1-distill-llama-70b",
+        "qwen/qwen3-32b",
+        "moonshotai/kimi-k2-instruct-0905",
       ].includes(selectedLLM) ||
       selectedLLM.startsWith("ollama")
     ) {
@@ -111,7 +112,8 @@ export default async function handler(req, res) {
             [
               "llama-3.3-70b-versatile",
               "meta-llama/llama-4-maverick-17b-128e-instruct",
-              "deepseek-r1-distill-llama-70b",
+              "moonshotai/kimi-k2-instruct-0905",
+              "qwen/qwen3-32b",
             ].includes(selectedLLM) ||
             selectedLLM.startsWith("ollama")
           ) {
@@ -497,7 +499,8 @@ export async function callOpenAI({
       llm.startsWith("gpt") || llm === "o3-mini"
         ? "https://api.openai.com/v1/chat/completions"
         : llm.startsWith("llama") ||
-          llm.startsWith("deepseek") ||
+          llm.startsWith("qwen") ||
+          llm.startsWith("moonshotai") ||
           llm.startsWith("meta-llama")
         ? "https://api.groq.com/openai/v1/chat/completions"
         : llm.startsWith("ollama")
@@ -896,13 +899,19 @@ export async function callBedrock({
     }
 
     modelId =
-      modelId === "anthropic.claude-3-7-sonnet-20250219-v1:0" ||
-      modelId === "anthropic.claude-3-5-haiku-20241022-v1:0" ||
-      modelId === "anthropic.claude-3-5-sonnet-20240620-v1:0" ||
-      modelId === "meta.llama3-3-70b-instruct-v1:0" ||
-      modelId === "meta.llama3-2-11b-instruct-v1:0" ||
-      modelId === "meta.llama3-1-70b-instruct-v1:0" ||
-      modelId === "meta.llama3-1-8b-instruct-v1:0"
+      model === "anthropic.claude-haiku-4-5-20251001-v1:0" ||
+      model === "anthropic.claude-sonnet-4-5-20250929-v1:0" ||
+      model === "anthropic.claude-opus-4-1-20250805-v1:0" ||
+      model === "anthropic.claude-sonnet-4-20250514-v1:0" ||
+      model === "anthropic.claude-3-7-sonnet-20250219-v1:0" ||
+      model === "anthropic.claude-3-5-haiku-20241022-v1:0" ||
+      model === "anthropic.claude-3-5-sonnet-20240620-v1:0" ||
+      model === "amazon.nova-premier-v1:0" ||
+      model === "meta.llama4-maverick-17b-instruct-v1:0" ||
+      model === "meta.llama3-3-70b-instruct-v1:0" ||
+      model === "meta.llama3-2-11b-instruct-v1:0" ||
+      model === "meta.llama3-1-70b-instruct-v1:0" ||
+      model === "meta.llama3-1-8b-instruct-v1:0"
         ? AWS_REGION.substring(0, 2) + "." + modelId
         : modelId;
 

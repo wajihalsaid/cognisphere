@@ -29,7 +29,8 @@ export default async function handler(req, res) {
     llm.startsWith("gpt") || llm === "o3-mini"
       ? "https://api.openai.com/v1/chat/completions"
       : llm.startsWith("llama") ||
-        llm.startsWith("deepseek") ||
+        llm.startsWith("moonshotai") ||
+        llm.startsWith("qwen") ||
         llm.startsWith("meta-llama")
       ? "https://api.groq.com/openai/v1/chat/completions"
       : llm.startsWith("ollama")
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
       messages: [...conversation],
       ...(llm.startsWith("gpt-5")
         ? { max_completion_tokens: 10000 }
-        : llm.startsWith("deepseek")
+        : llm.startsWith("qwen")
         ? { max_tokens: 4000 }
         : llm.startsWith("ollama")
         ? { stream: false }
