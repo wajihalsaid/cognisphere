@@ -899,19 +899,19 @@ export async function callBedrock({
     }
 
     modelId =
-      model === "anthropic.claude-haiku-4-5-20251001-v1:0" ||
-      model === "anthropic.claude-sonnet-4-5-20250929-v1:0" ||
-      model === "anthropic.claude-opus-4-1-20250805-v1:0" ||
-      model === "anthropic.claude-sonnet-4-20250514-v1:0" ||
-      model === "anthropic.claude-3-7-sonnet-20250219-v1:0" ||
-      model === "anthropic.claude-3-5-haiku-20241022-v1:0" ||
-      model === "anthropic.claude-3-5-sonnet-20240620-v1:0" ||
-      model === "amazon.nova-premier-v1:0" ||
-      model === "meta.llama4-maverick-17b-instruct-v1:0" ||
-      model === "meta.llama3-3-70b-instruct-v1:0" ||
-      model === "meta.llama3-2-11b-instruct-v1:0" ||
-      model === "meta.llama3-1-70b-instruct-v1:0" ||
-      model === "meta.llama3-1-8b-instruct-v1:0"
+      modelId === "anthropic.claude-haiku-4-5-20251001-v1:0" ||
+      modelId === "anthropic.claude-sonnet-4-5-20250929-v1:0" ||
+      modelId === "anthropic.claude-opus-4-1-20250805-v1:0" ||
+      modelId === "anthropic.claude-sonnet-4-20250514-v1:0" ||
+      modelId === "anthropic.claude-3-7-sonnet-20250219-v1:0" ||
+      modelId === "anthropic.claude-3-5-haiku-20241022-v1:0" ||
+      modelId === "anthropic.claude-3-5-sonnet-20240620-v1:0" ||
+      modelId === "amazon.nova-premier-v1:0" ||
+      modelId === "meta.llama4-maverick-17b-instruct-v1:0" ||
+      modelId === "meta.llama3-3-70b-instruct-v1:0" ||
+      modelId === "meta.llama3-2-11b-instruct-v1:0" ||
+      modelId === "meta.llama3-1-70b-instruct-v1:0" ||
+      modelId === "meta.llama3-1-8b-instruct-v1:0"
         ? AWS_REGION.substring(0, 2) + "." + modelId
         : modelId;
 
