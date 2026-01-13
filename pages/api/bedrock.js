@@ -84,7 +84,10 @@ export default async function handler(req, res) {
         ? CustomURL
         : `bedrock-runtime.${region}.amazonaws.com`;
     const path = `/model/${modelId}/converse`;
-
+    // Clear chat history from memory for the new sessions
+    if (!sessionId || sessionId === "undefined") {
+      conversationMemoryBedrock[sessionId] = [];
+    }
     // Retrieve chat history from memory storage (using sessionId)
     if (!conversationMemoryBedrock[sessionId]) {
       conversationMemoryBedrock[sessionId] = [];

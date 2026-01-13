@@ -64,7 +64,10 @@ export default async function handler(req, res) {
       ? apiKey.replace(/(.{4})(.*)(.{4})/, "$1******$3")
       : "[REDACTED]";
   };
-
+  // Clear chat history from memory for the new sessions
+  if (!sessionId || sessionId === "undefined") {
+    conversationMemoryOpenAI[sessionId] = [];
+  }
   // Retrieve chat history from memory storage (using sessionId)
   if (!conversationMemoryOpenAI[sessionId]) {
     conversationMemoryOpenAI[sessionId] = [];
