@@ -815,7 +815,8 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     value={
                       apiServer.startsWith("https://us.api.inspect") ||
                       apiServer.startsWith("https://eu.api.inspect") ||
-                      apiServer.startsWith("https://ap.api.inspect")
+                      apiServer.startsWith("https://ap.api.inspect") ||
+                      apiServer.startsWith("https://uae.api.inspect")
                         ? apiServer
                         : "custom"
                     }
@@ -838,6 +839,9 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     <option value="https://ap.api.inspect.aidefense.security.cisco.com/">
                       AP Server
                     </option>
+                    <option value="https://uae.api.inspect.aidefense.security.cisco.com/">
+                      UAE Server
+                    </option>
                     <option value="custom">Custom Server</option>{" "}
                     {/* 🆕 New option */}
                   </select>
@@ -847,6 +851,7 @@ const AdminSidebar = ({ showAdmin, setShowAdmin, questions, setQuestions }) => {
                     (!apiServer.includes("us.api.inspect") &&
                       !apiServer.includes("eu.api.inspect") &&
                       !apiServer.includes("ap.api.inspect") &&
+                      !apiServer.includes("uae.api.inspect") &&
                       apiServer)) && (
                     <div className="mb-2">
                       <input
