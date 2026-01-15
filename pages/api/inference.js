@@ -78,6 +78,7 @@ export default async function handler(req, res) {
       us: "https://us.api.inspect.aidefense.security.cisco.com/",
       eu: "https://eu.api.inspect.aidefense.security.cisco.com/",
       ap: "https://ap.api.inspect.aidefense.security.cisco.com/",
+      ap: "https://uae.api.inspect.aidefense.security.cisco.com/",
     };
     let apiServer = "";
     apiServer = regionMap[aiDefenseRegion] || aiDefenseRegion;
@@ -603,6 +604,7 @@ export async function callChatInspectPrompt({
     "https://us.api.inspect",
     "https://eu.api.inspect",
     "https://ap.api.inspect",
+    "https://uae.api.inspect",
   ];
 
   const maskAPIKey = (apiKey) =>
@@ -703,6 +705,7 @@ export async function callChatInspect({
     "https://us.api.inspect",
     "https://eu.api.inspect",
     "https://ap.api.inspect",
+    "https://uae.api.inspect",
   ];
 
   const maskAPIKey = (apiKey) =>

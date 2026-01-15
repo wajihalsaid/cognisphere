@@ -32,6 +32,7 @@ export default async function handler(req, res) {
     "https://us.api.inspect",
     "https://eu.api.inspect",
     "https://ap.api.inspect",
+    "https://uae.api.inspect",
   ];
   try {
     const requestPayload = {
