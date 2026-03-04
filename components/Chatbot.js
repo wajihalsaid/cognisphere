@@ -249,20 +249,37 @@ function processInspectionResults(response, enabledRules) {
     parseEnabledRules(enabledRules).length === 0;
 
   if (isEmptyArray) {
-    response.rules.forEach((rule) => {
-      violations.push({
-        classification: rule.classification,
-        rule_name: rule.rule_name,
-        entity_types: rule.entity_types.filter((e) => e),
-        attack_technique:
-          response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
-            ? response.attack_technique
-            : null,
-        severity:
-          response.severity !== "NONE_SEVERITY" ? response.severity : null,
-        action: "Alert",
+    if (response.action === "Block")
+      response.rules.forEach((rule) => {
+        violations.push({
+          classification: rule.classification,
+          rule_name: rule.rule_name,
+          entity_types: rule.entity_types.filter((e) => e),
+          attack_technique:
+            response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
+              ? response.attack_technique
+              : null,
+          severity:
+            response.severity !== "NONE_SEVERITY" ? response.severity : null,
+          action: "Block",
+        });
       });
-    });
+    else {
+      response.rules.forEach((rule) => {
+        violations.push({
+          classification: rule.classification,
+          rule_name: rule.rule_name,
+          entity_types: rule.entity_types.filter((e) => e),
+          attack_technique:
+            response.attack_technique !== "NONE_ATTACK_TECHNIQUE"
+              ? response.attack_technique
+              : null,
+          severity:
+            response.severity !== "NONE_SEVERITY" ? response.severity : null,
+          action: "Alert",
+        });
+      });
+    }
 
     return violations.length ? violations : null;
   } else {
@@ -1440,7 +1457,7 @@ const Chatbot = () => {
                   // 🔴 Display Red Alert Only
                   return (
                     <div key={index} className="flex justify-center">
-                      <div className="bg-red-600 text-white rounded-lg px-4 py-3 max-w-[60%] text-center flex">
+                      <div className="bg-red-600 text-white rounded-lg px-4 py-3 max-w-[90%] text-center flex">
                         <span
                           className="text-5xl"
                           style={{
@@ -1470,7 +1487,7 @@ const Chatbot = () => {
                     {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
                     {item.aiDefenseTriggerAction === "orange" && (
                       <div className="flex justify-center">
-                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[60%] text-center flex">
+                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[90%] text-center flex">
                           <span className="text-4xl">⚠️</span>
                           <p className="text-sm font-bold whitespace-pre-line">
                             {item.aiDefenseTriggerMessage}
@@ -1601,7 +1618,7 @@ const Chatbot = () => {
                     {/* 🟠 Amber Alert after Answer (Only if aiDefenseAction is "orange") */}
                     {item.aiDefenseAction === "orange" && (
                       <div className="flex justify-center">
-                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[60%] text-center flex">
+                        <div className="bg-amber-500 text-white rounded-lg px-4 py-3 max-w-[90%] text-center flex">
                           <span className="text-4xl">⚠️</span>
                           <p className="text-sm font-bold whitespace-pre-line">
                             {item.aiDefenseMessage}
