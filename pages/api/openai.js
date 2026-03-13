@@ -29,13 +29,13 @@ export default async function handler(req, res) {
     llm.startsWith("gpt") || llm === "o3-mini"
       ? "https://api.openai.com/v1/chat/completions"
       : llm.startsWith("llama") ||
-        llm.startsWith("moonshotai") ||
-        llm.startsWith("qwen") ||
-        llm.startsWith("meta-llama")
-      ? "https://api.groq.com/openai/v1/chat/completions"
-      : llm.startsWith("ollama")
-      ? ollamaModelsUrl + "/api/chat"
-      : ""; // Default to an empty string if none match (to avoid undefined)
+          llm.startsWith("moonshotai") ||
+          llm.startsWith("qwen") ||
+          llm.startsWith("meta-llama")
+        ? "https://api.groq.com/openai/v1/chat/completions"
+        : llm.startsWith("ollama")
+          ? ollamaModelsUrl + "/api/chat"
+          : ""; // Default to an empty string if none match (to avoid undefined)
   // Change the URL if the mode is "gateway"
   if (aiDefenseMode === "gateway" && gatewayUrl) {
     const allowedPrefixes = [
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       "https://ap.gateway.aidefense",
     ];
     const shouldIgnoreCert = !allowedPrefixes.some((prefix) =>
-      apiUrl.startsWith(prefix)
+      apiUrl.startsWith(prefix),
     );
     agent = shouldIgnoreCert
       ? new https.Agent({ rejectUnauthorized: false })
@@ -111,12 +111,12 @@ export default async function handler(req, res) {
       ...(llm.startsWith("gpt-5")
         ? { max_completion_tokens: 10000 }
         : llm.startsWith("qwen")
-        ? { max_tokens: 4000 }
-        : llm.startsWith("ollama")
-        ? { stream: false }
-        : llm !== "o3-mini"
-        ? { max_tokens: 1000 }
-        : {}),
+          ? { max_tokens: 4000 }
+          : llm.startsWith("ollama")
+            ? { stream: false }
+            : llm !== "o3-mini"
+              ? { max_tokens: 1000 }
+              : {}),
     };
 
     const config = {
@@ -156,7 +156,20 @@ export default async function handler(req, res) {
       response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "No response received.";
 
-    conversation.push({ role: "assistant", content: aiResponse });
+    // If response indicates rule violation, remove the last user message
+    if (
+      aiResponse.includes("This request violates rules:") &&
+      conversation.length > 0 &&
+      conversation[conversation.length - 1].role === "user"
+    ) {
+      conversation.pop();
+    } else {
+      // Otherwise append AI response normally
+      conversation.push({
+        role: "assistant",
+        content: aiResponse,
+      });
+    }
 
     // Save chat history in memory
     conversationMemoryOpenAI[sessionId] = conversation;

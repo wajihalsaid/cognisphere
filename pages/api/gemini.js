@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       via: aiDefenseMode,
       method: "POST",
       url: `https://generativelanguage.googleapis.com/v1beta/models/${llm}:generateContent?key=${maskAPIKey(
-        apiKey
+        apiKey,
       )}`,
       headers: {
         "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     // Append AI response to chat history
@@ -106,18 +106,29 @@ export default async function handler(req, res) {
       response?.data?.response?.candidates?.[0]?.content?.parts?.[0]?.text ??
       "No response received.";
 
-    conversation.push({ role: "model", content: aiResponse });
+    // If response indicates rule violation, remove the last user message
+    if (
+      aiResponse.includes("This request violates rules:") &&
+      conversation.length > 0 &&
+      conversation[conversation.length - 1].role === "user"
+    ) {
+      conversation.pop();
+    } else {
+      // Otherwise append AI response normally
+      conversation.push({
+        role: "model",
+        content: aiResponse,
+      });
+    }
 
     // Save chat history in memory
     conversationMemoryGemini[sessionId] = conversation;
 
-    res
-      .status(200)
-      .json({
-        response: response.data,
-        logs: requestDetails,
-        sessionId: userSessionId,
-      });
+    res.status(200).json({
+      response: response.data,
+      logs: requestDetails,
+      sessionId: userSessionId,
+    });
   } catch (error) {
     console.error("OpenAI API Error:", error); // Log full error for debugging
     const errorMessage =

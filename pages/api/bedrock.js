@@ -202,7 +202,20 @@ export default async function handler(req, res) {
       jsonResponse.output?.message?.content?.[0]?.text ??
       "No response received.";
 
-    conversation.push({ role: "assistant", content: aiResponse });
+    // If response indicates rule violation, remove the last user message
+    if (
+      aiResponse.includes("This request violates rules:") &&
+      conversation.length > 0 &&
+      conversation[conversation.length - 1].role === "user"
+    ) {
+      conversation.pop();
+    } else {
+      // Otherwise append AI response normally
+      conversation.push({
+        role: "assistant",
+        content: aiResponse,
+      });
+    }
     conversationMemoryBedrock[sessionId] = conversation;
 
     res.status(response.status).json({
